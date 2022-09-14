@@ -31,7 +31,7 @@ namespace RomgleWebApi.Controllers
             await _itemsService.FindAllAsync(searchInput);
 
         [HttpPost("CheckGuess")]
-        public async Task<Response<GuessResult>> CheckGuess(string itemId, string playerId, Gamemode mode) =>
+        public async Task<GuessResult> CheckGuess(string itemId, string playerId, Gamemode mode) =>
             await _gameService.CheckGuessAsync(itemId, playerId, mode);
 
         [HttpGet("WasDailyAttempted")]

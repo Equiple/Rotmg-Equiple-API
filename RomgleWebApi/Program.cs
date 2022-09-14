@@ -43,6 +43,7 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseCors(builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+    app.UseDeveloperExceptionPage();
 
     app.UseSwagger();
     app.UseSwaggerUI();
@@ -53,14 +54,5 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
-
-//{
-//    RealmeyeScraper realmeye = new RealmeyeScraper();
-//    realmeye.Start();
-//}
-//app.Run(async context =>
-//{
-//    await context.Response.WriteAsync("1232");
-//});
 
 app.Run();

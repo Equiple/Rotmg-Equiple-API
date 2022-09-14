@@ -28,13 +28,13 @@ namespace RomgleWebApi.Services
         //Daily - - - - -  - - - - -  - - - - -  - - - - -  - - - - -  - - - - -  - - - - -  - - - - -  - - - - - 
         //
         public async Task<Daily> GetAsync() =>
-            await _dailiesCollection.Find(x => x.Timestamp.ToShortDateString() == DateTime.Now.ToShortDateString()).FirstOrDefaultAsync();
+            await _dailiesCollection.Find(x => x.Timestamp == DateTime.Now.Date).FirstOrDefaultAsync();
 
         public async Task<Daily> GetAsync(string id) =>
             await _dailiesCollection.Find(x => x.Id == id).FirstOrDefaultAsync();
 
         public async Task<Daily?> GetAsync(DateTime timestamp) =>
-            await _dailiesCollection.Find(x => x.Timestamp.ToShortDateString() == timestamp.ToShortDateString()).FirstOrDefaultAsync();
+            await _dailiesCollection.Find(x => x.Timestamp == timestamp).FirstOrDefaultAsync();
 
         private async Task<List<Daily>> GetAllAsync() =>
             await _dailiesCollection.Find(_ => true).ToListAsync();
@@ -43,7 +43,7 @@ namespace RomgleWebApi.Services
             await _dailiesCollection.InsertOneAsync(newDaily);
 
         public async Task CreateAsync(string itemId) =>
-            await _dailiesCollection.InsertOneAsync(new Daily { Timestamp = DateTime.Now, TargetItemId = itemId });
+            await _dailiesCollection.InsertOneAsync(new Daily { Timestamp = DateTime.Now.Date, TargetItemId = itemId });
 
         private async Task UpdateAsync(string id, Daily updatedItem) =>
             await _dailiesCollection.ReplaceOneAsync(x => x.Id == id, updatedItem);
@@ -53,7 +53,7 @@ namespace RomgleWebApi.Services
 
         public async Task<Daily> GetDailyItem() 
         {
-            Daily today = await GetAsync(DateTime.Now);
+            Daily today = await GetAsync(DateTime.Now.Date);
             if (today is null)
             {
                 Item itm = await _itemsService.GetRandomItemAsync();

@@ -2,8 +2,8 @@
 {
     public enum Hint
     {
-        Bigger,
-        Smaller,
+        Greater,
+        Less,
         Correct,
         Wrong
     }

@@ -32,14 +32,14 @@ namespace RomgleWebApi.Data.Extensions
             return statistic;
         }
 
-        public static bool HasCurrentGame(this Player player)
+        public static bool HasActiveGame(this Player player)
         {
-            return player.CurrentGame != null;
+            return player.CurrentGame != null && !player.CurrentGame.IsEnded;
         }
 
         public static bool IsOutOfTries(this Player player)
         {
-            return player.CurrentGame.GuessItemIds.Count == 10;
+            return player.CurrentGame != null && player.CurrentGame.GuessItemIds.Count == 10;
         }
 
         

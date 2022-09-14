@@ -15,7 +15,7 @@ namespace RomgleWebApi.Data.Models
         public DateTime RegistrationDate { get; set; }
         public GameStatistic NormalStats { get; set; }
         public GameStatistic DailyStats { get; set; } 
-        public ActiveGame? CurrentGame { get; set; }
+        public Game? CurrentGame { get; set; }
         public bool DailyAttempted { get; set; } = false;
 
     }
