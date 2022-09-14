@@ -46,7 +46,7 @@ namespace RomgleWebApi.Services
 
             if (await CheckCurrentGame(player, guessId))
             {
-                await UpdatePlayerScoreAsync(player, true);
+                await UpdatePlayerScoreAsync(player, GameResult.Won);
                 result.Status = GuessStatus.Guessed;
             }
             else if (player.IsOutOfTries())
@@ -100,8 +100,6 @@ namespace RomgleWebApi.Services
             return target.Name;
         });
 
-        public Task<bool> HasAnActiveGameAsync(string playerId) => WithPlayer(playerId, player => player.CurrentGame != null);
-
         public Task<Gamemode?> GetActiveGamemodeAsync(string playerId) => WithPlayer<Gamemode?>(playerId, player =>
         {
             if (player.CurrentGame != null)
@@ -113,26 +111,26 @@ namespace RomgleWebApi.Services
 
         //private methods
 
-        private async Task UpdatePlayerScoreAsync(Player player, bool positive)
+        private async Task UpdatePlayerScoreAsync(Player player, GameResult result)
         {
             if (player.CurrentGame.Mode == Gamemode.Normal)
             {
-                if (positive)
+                if (result == GameResult.Won)
                 {
                     player.NormalStats = player.NormalStats.AddWin(player.CurrentGame.TargetItemId, player.CurrentGame.GuessItemIds.Count);
                 }
-                else
+                else if(result == GameResult.Lost)
                 {
                     player.NormalStats = player.NormalStats.AddLose();
                 }
             }
             else if (player.CurrentGame.Mode == Gamemode.Daily)
             {
-                if (positive)
+                if (result == GameResult.Won)
                 {
                     player.DailyStats = player.DailyStats.AddWin(player.CurrentGame.TargetItemId, player.CurrentGame.GuessItemIds.Count);
                 }
-                else
+                else if(result == GameResult.Lost)
                 {
                     player.DailyStats = player.DailyStats.AddLose();
                 }
