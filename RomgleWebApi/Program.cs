@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Options;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Conventions;
 using RomgleWebApi.Data;
 using RomgleWebApi.Services;
 using System.ComponentModel;
@@ -11,10 +13,16 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
+builder.Services.AddCors();
+
 builder.Services.AddControllers().AddJsonOptions(options => 
 {
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
+
+ConventionPack mongoConventions = new ConventionPack();
+mongoConventions.Add(new EnumRepresentationConvention(BsonType.String));
+ConventionRegistry.Register("aMongo", mongoConventions, x => true);
 
 builder.Services.AddEndpointsApiExplorer();
 
@@ -34,6 +42,8 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+    app.UseCors(builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+
     app.UseSwagger();
     app.UseSwaggerUI();
 }
@@ -48,5 +58,9 @@ app.MapControllers();
 //    RealmeyeScraper realmeye = new RealmeyeScraper();
 //    realmeye.Start();
 //}
+//app.Run(async context =>
+//{
+//    await context.Response.WriteAsync("1232");
+//});
 
 app.Run();

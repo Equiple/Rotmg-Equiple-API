@@ -11,90 +11,156 @@ namespace RomgleWebApi.Services
         private readonly DailiesService _dailiesService;
         private readonly PlayersService _playersService;
 
+
         public GameService(ItemsService itemsService, DailiesService dailiesService, PlayersService playersService)
         {
             _itemsService = itemsService;
             _dailiesService = dailiesService;
             _playersService = playersService;
         }
-
-        public async Task<GuessResult> CheckGuessAsync(string guessId, string playerId, string gamemode)
+        
+        public Task<Response<GuessResult>> CheckGuessAsync(string guessId, string playerId, Gamemode mode) => WithPlayerAsync(playerId, async player =>
         {
-            Player currentPlayer = await _playersService.GetAsync(playerId);
             Item guess = await _itemsService.GetAsync(guessId);
             GuessResult result = new GuessResult();
-            if (!currentPlayer.HasCurrentGame())
+            if (player.HasCurrentGame())
+            {
+                if (player.CurrentGame.Mode != mode)
+                {
+                    return new Response<GuessResult>(1, "Given gamemode is not the same as current game");
+                    //throw new Exception("Given gamemode is not the same as current game");
+                }
+            }
+            else
             {
                 Item newItem;
-                if (gamemode == "Daily")
+                if (mode == Gamemode.Daily)
                 {
-                    Daily dd = await _dailiesService.GetDailyItem();
-                    newItem = await _itemsService.GetAsync(dd.Id);
-                    currentPlayer.StartNewGame(newItem.Id, gamemode);
+                    Daily dailyItem = await _dailiesService.GetDailyItem();
+                    newItem = await _itemsService.GetAsync(dailyItem.Id);
                 }
-                else
-                {
-                    newItem = await _itemsService.GetRandomItemAsync();
-                    currentPlayer.StartNewGame(newItem.Id, gamemode);
-                }
+                else newItem = await _itemsService.GetRandomItemAsync();
+                await StartNewGameAsync(player, newItem.Id, mode);
             }
             //TODO: Guest
 
-            if (currentPlayer.CheckCurrentGame(guessId))
+            if (await CheckCurrentGame(player, guessId))
             {
-                currentPlayer.UpdatePlayerScore(true);
+                await UpdatePlayerScoreAsync(player, true);
                 result.Status = GuessStatus.Guessed;
             }
-            else if (currentPlayer.IsOutOfTries())
+            else if (player.IsOutOfTries())
             {
                 result.Status = GuessStatus.Lost;
             }
-            else 
+            else
             {
-                result.Hints = await GetHintsAsync(currentPlayer, guess);
+                result.Hints = await GetHintsAsync(player, guess);
             }
             return result;
-        }
+        });
 
-        public async Task<int> GetTriesAsync(string playerId)
-        {
-            Player currentPlayer = await _playersService.GetAsync(playerId);
-            return currentPlayer.CurrentGame.GuessItemIds.Count();
-        }
+        public Task<int> GetTriesAsync(string playerId) => WithPlayer(playerId, player => player.CurrentGame.GuessItemIds.Count());
 
-        public async Task<List<Item>> GetGuessesAsync(string playerId)
+        public Task<List<Item>> GetGuessesAsync(string playerId) => WithPlayerAsync(playerId, async player =>
         {
-            Player currentPlayer = await _playersService.GetAsync(playerId);
             List<Item> guesses = new List<Item>();
-            foreach(string itemId in currentPlayer.CurrentGame.GuessItemIds)
+            foreach (string itemId in player.CurrentGame.GuessItemIds)
             {
                 guesses.Add(await _itemsService.GetAsync(itemId));
             }
             return guesses;
-        }
-        public async Task<List<Hints>> GetHintsAsync(string playerId)
+        });
+
+        public Task<List<Hints>> GetHintsAsync(string playerId) => WithPlayerAsync(playerId, async player =>
         {
-            Player currentPlayer = await _playersService.GetAsync(playerId);
             List<Hints> hints = new List<Hints>();
             List<Item> guesses = new List<Item>();
-            foreach(string itemId in currentPlayer.CurrentGame.GuessItemIds)
+            foreach (string itemId in player.CurrentGame.GuessItemIds)
             {
                 guesses.Add(await _itemsService.GetAsync(itemId));
             }
-            foreach(Item guess in guesses)
+            foreach (Item guess in guesses)
             {
-                hints.Add(await GetHintsAsync(currentPlayer, guess));
+                hints.Add(await GetHintsAsync(player, guess));
             }
             return hints;
-        }
-        public async Task<Hints> GetHintsAsync(string  playerId, string guessId)
+        });
+
+        public Task<Hints> GetHintsAsync(string playerId, string guessId) => WithPlayerAsync(playerId, async player =>
         {
             Item item = await _itemsService.GetAsync(guessId);
-            Player currentPlayer = await _playersService.GetAsync(playerId);
-            return await GetHintsAsync(currentPlayer, item);
+            return await GetHintsAsync(player, item);
+        });
+
+        public Task<string> GetTargetItemNameAsync(string playerId) => WithPlayerAsync(playerId, async player =>
+        {
+            Item target = await _itemsService.GetAsync(player.CurrentGame.TargetItemId);
+            return target.Name;
+        });
+
+        public Task<bool> HasAnActiveGameAsync(string playerId) => WithPlayer(playerId, player => player.CurrentGame != null);
+
+        public Task<Gamemode?> GetActiveGamemodeAsync(string playerId) => WithPlayer<Gamemode?>(playerId, player =>
+        {
+            if (player.CurrentGame != null)
+            {
+                return player.CurrentGame.Mode;
+            }
+            else return null;
+        });
+
+        //private methods
+
+        private async Task UpdatePlayerScoreAsync(Player player, bool positive)
+        {
+            if (player.CurrentGame.Mode == Gamemode.Normal)
+            {
+                if (positive)
+                {
+                    player.NormalStats = player.NormalStats.AddWin(player.CurrentGame.TargetItemId, player.CurrentGame.GuessItemIds.Count);
+                }
+                else
+                {
+                    player.NormalStats = player.NormalStats.AddLose();
+                }
+            }
+            else if (player.CurrentGame.Mode == Gamemode.Daily)
+            {
+                if (positive)
+                {
+                    player.DailyStats = player.DailyStats.AddWin(player.CurrentGame.TargetItemId, player.CurrentGame.GuessItemIds.Count);
+                }
+                else
+                {
+                    player.DailyStats = player.DailyStats.AddLose();
+                }
+                player.DailyAttempted = true;
+            }
+            player.CurrentGame = null;
+            await _playersService.UpdateAsync(player.Id, player);
         }
 
-        public async Task<Hints> GetHintsAsync(Player currentPlayer, Item guess)
+        private async Task<bool> CheckCurrentGame(Player player, string itemId)
+        {
+            player.CurrentGame.GuessItemIds.Append(itemId);
+            await _playersService.UpdateAsync(player.Id, player);
+            return player.CurrentGame.TargetItemId == itemId;
+        }
+
+        private async Task StartNewGameAsync(Player player, string targetItemId, Gamemode mode)
+        {
+            player.CurrentGame = new ActiveGame
+            {
+                StartTime = DateTime.Now,
+                TargetItemId = targetItemId,
+                GuessItemIds = new List<string>(),
+                Mode = mode
+            };
+            await _playersService.UpdateAsync(player.Id, player);
+        }
+
+        private async Task<Hints> GetHintsAsync(Player currentPlayer, Item guess)
         {
             Item target = await _itemsService.GetAsync(currentPlayer.CurrentGame.TargetItemId);
             Hints hints = new Hints
@@ -129,18 +195,37 @@ namespace RomgleWebApi.Services
                 return guessProperty.Equals(targetProperty) ? Hint.Correct : Hint.Wrong;
             }
         }
-        
-        public async Task<string> GetTargetItemNameAsync(string playerId)
+
+        //WithPlayer
+        private Task WithPlayer(string id, Action<Player> action)
         {
-            Player currentPlayer = await _playersService.GetAsync(playerId);
-            Item target = await _itemsService.GetAsync(currentPlayer.CurrentGame.TargetItemId);
-            return target.Name;
+            return WithPlayerAsync(id, player =>
+            {
+                action(player);
+                return Task.FromResult(0);
+            });
         }
 
-        public async Task<bool> HasAnActiveGameAsync(string playerId)
+        private Task<T> WithPlayer<T>(string id, Func<Player, T> func)
         {
-            Player currentPlayer = await _playersService.GetAsync(playerId);
-            return currentPlayer.CurrentGame != null;
+            return WithPlayerAsync(id, player => Task.FromResult(func(player)));
         }
+
+        private Task WithPlayerAsync(string id, Func<Player, Task> func)
+        {
+            return WithPlayerAsync(id, async player =>
+            {
+                await func(player);
+                return 0;
+            });
+        }
+
+        private async Task<T> WithPlayerAsync<T>(string id, Func<Player, Task<T>> func)
+        {
+            Player player = await _playersService.GetAsync(id);
+            return await func(player);
+        }
+
+        
     }
 }

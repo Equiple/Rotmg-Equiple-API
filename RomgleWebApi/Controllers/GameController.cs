@@ -17,31 +17,24 @@ namespace RomgleWebApi.Controllers
         private readonly ILogger<GameController> _logger;
 
         public GameController(ILogger<GameController> logger,
-            ItemsService itemsService, PlayersService playersService, DailiesService dailiesService)
+            ItemsService itemsService, PlayersService playersService, DailiesService dailiesService, GameService gameService)
         {
             _logger = logger;
             _itemsService = itemsService;
             _playersService = playersService;
             _dailiesService = dailiesService;
+            _gameService = gameService;
         }
 
         [HttpGet("FindAll")]
-        public async Task<List<Item>> FindAll(string searchInput) =>
+        public async Task<IEnumerable<Item>> FindAll(string searchInput) => 
             await _itemsService.FindAllAsync(searchInput);
 
-        [HttpPost("StartNormal")]
-        public async Task StartNormal(string itemId, string playerId) =>
-            await _gameService.CheckGuessAsync(itemId, playerId, "Normal");
-
-        [HttpPost("StartDaily")]
-        public async Task StartDaily(string itemId, string playerId) =>
-            await _gameService.CheckGuessAsync(itemId, playerId, "Daily");
-
         [HttpPost("CheckGuess")]
-        public async Task<GuessResult> CheckGuess(string itemId, string playerId) =>
-            await _gameService.CheckGuessAsync(itemId, playerId, "");
+        public async Task<Response<GuessResult>> CheckGuess(string itemId, string playerId, Gamemode mode) =>
+            await _gameService.CheckGuessAsync(itemId, playerId, mode);
 
-        [HttpGet("Daily")]
+        [HttpGet("WasDailyAttempted")]
         public async Task<bool> WasDailyAttempted(string playerId) =>
             await _playersService.WasDailyAttemptedAsync(playerId);
 
@@ -60,6 +53,10 @@ namespace RomgleWebApi.Controllers
         [HttpGet("HasAnActiveGame")]
         public async Task<bool> HasAnActiveGame(string playerId) =>
             await _gameService.HasAnActiveGameAsync(playerId);
+
+        [HttpGet("GetActiveGamemode")]
+        public async Task<Gamemode?> GetActiveGamemode(string playerId) =>
+            await _gameService.GetActiveGamemodeAsync(playerId);
 
         [HttpGet("GetTargetItemName")]
         public async Task<string> GetTargetItemAsync(string playerId)=>

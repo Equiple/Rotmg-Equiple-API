@@ -8,7 +8,6 @@ namespace RomgleWebApi.Data.Models
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
         public string Id { get; set; }
-        [BsonDateTimeOptions]
         public DateTime Timestamp { get; set; }
         public string TargetItemId { get; set; }
     }

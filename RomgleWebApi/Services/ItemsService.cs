@@ -41,14 +41,10 @@ namespace RomgleWebApi.Services
         public async Task RemoveAsync(string id) =>
             await _itemsCollection.DeleteOneAsync(x => x.Id == id);
 
-        public async Task<List<Item>> FindAllAsync(string searchInput)
+        public async Task<IEnumerable<Item>> FindAllAsync(string searchInput)
         {
-            if (searchInput == null || searchInput == "")
-            {
-                return null;
-            }
-
-            return await _itemsCollection.Find(x => x.Name.Contains(searchInput)).ToListAsync();
+            searchInput = searchInput.ToLower();
+            return await _itemsCollection.Find(x => x.Name.ToLower().Contains(searchInput)).ToListAsync();
         }
             
         public async Task<Item> GetRandomItemAsync() 

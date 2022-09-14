@@ -4,7 +4,7 @@ namespace RomgleWebApi.Data.Extensions
 {
     public static class PlayerExtensions
     {
-        public static void AddWin(this GameStatistic statistic, string guessId, int tries)
+        public static GameStatistic AddWin(this GameStatistic statistic, string guessId, int tries)
         {
             statistic.BestGuess = guessId;
             statistic.RunsWon += 1;
@@ -18,9 +18,10 @@ namespace RomgleWebApi.Data.Extensions
                 statistic.BestRun = tries;
                 statistic.BestGuess = guessId;
             }
+            return statistic;
         }
 
-        public static void AddLose(this GameStatistic statistic)
+        public static GameStatistic AddLose(this GameStatistic statistic)
         {
             if (statistic.CurrentStreak > statistic.BestStreak)
             {
@@ -28,40 +29,7 @@ namespace RomgleWebApi.Data.Extensions
             }
             statistic.CurrentStreak = 0;
             statistic.RunsLost += 1;
-        }
-
-        public static void UpdatePlayerScore(this Player player, bool positive)
-        {
-            if(player.CurrentGame.Gamemode == "Normal")
-            {
-                if (positive)
-                {
-                    player.NormalStats.AddWin(player.CurrentGame.TargetItemId, player.CurrentGame.GuessItemIds.Count);
-                }
-                else
-                {
-                    player.NormalStats.AddLose();
-                }
-            } 
-            else if (player.CurrentGame.Gamemode == "Daily")
-            {
-                if (positive)
-                {
-                    player.DailyStats.AddWin(player.CurrentGame.TargetItemId, player.CurrentGame.GuessItemIds.Count);
-                }
-                else
-                {
-                    player.DailyStats.AddLose();
-                }
-                player.DailyAttempted = true;
-            }
-            player.CurrentGame = null;
-        }
-
-        public static bool CheckCurrentGame(this Player player, string itemId)
-        {
-            player.CurrentGame.GuessItemIds.Append(itemId);
-            return player.CurrentGame.TargetItemId == itemId;
+            return statistic;
         }
 
         public static bool HasCurrentGame(this Player player)
@@ -74,14 +42,6 @@ namespace RomgleWebApi.Data.Extensions
             return player.CurrentGame.GuessItemIds.Count == 10;
         }
 
-        public static void StartNewGame(this Player player, string targetItemId, string gamemode)
-        {
-            player.CurrentGame = new ActiveGame { 
-                StartTime= DateTime.Now, 
-                TargetItemId= targetItemId,
-                GuessItemIds= new List<string>(),
-                Gamemode= gamemode
-            };
-        }
+        
     }
 }

@@ -12,7 +12,6 @@ namespace RomgleWebApi.Data.Models
         public string Name { get; set; }
         public string Email { get; set; }
         public string Password { get; set; }
-        [BsonDateTimeOptions]
         public DateTime RegistrationDate { get; set; }
         public GameStatistic NormalStats { get; set; }
         public GameStatistic DailyStats { get; set; } 
