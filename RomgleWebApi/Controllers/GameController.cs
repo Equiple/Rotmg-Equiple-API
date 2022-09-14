@@ -50,10 +50,6 @@ namespace RomgleWebApi.Controllers
         public async Task<List<Item>> GetGuesses(string playerId) =>
             await _gameService.GetGuessesAsync(playerId);
 
-        [HttpGet("HasAnActiveGame")]
-        public async Task<bool> HasAnActiveGame(string playerId) =>
-            await _gameService.HasAnActiveGameAsync(playerId);
-
         [HttpGet("GetActiveGamemode")]
         public async Task<Gamemode?> GetActiveGamemode(string playerId) =>
             await _gameService.GetActiveGamemodeAsync(playerId);

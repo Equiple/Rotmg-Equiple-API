@@ -51,6 +51,7 @@ namespace RomgleWebApi.Services
             }
             else if (player.IsOutOfTries())
             {
+                result.targetItem = await _itemsService.GetAsync(player.CurrentGame.TargetItemId);
                 result.Status = GuessStatus.Lost;
             }
             else
