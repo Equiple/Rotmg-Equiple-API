@@ -56,7 +56,7 @@ namespace RomgleWebApi.Services
             Daily today = await GetAsync(DateTime.Now.Date);
             if (today is null)
             {
-                Item itm = await _itemsService.GetRandomItemAsync();
+                Item itm = await _itemsService.GetRandomItemAsync(false);
                 await CreateAsync(itm.Id);
                 today = await GetAsync(itm.Id);
             }

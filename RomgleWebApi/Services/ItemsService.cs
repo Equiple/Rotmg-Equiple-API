@@ -10,7 +10,7 @@ namespace RomgleWebApi.Services
     public class ItemsService
     {
         private readonly IMongoCollection<Item> _itemsCollection;
-        
+
         public ItemsService(
             IOptions<RotmgleDatabaseSettings> rotmgleDatabaseSettings)
         {
@@ -41,25 +41,28 @@ namespace RomgleWebApi.Services
         public async Task RemoveAsync(string id) =>
             await _itemsCollection.DeleteOneAsync(x => x.Id == id);
 
-        public async Task<IEnumerable<Item>> FindAllAsync(string searchInput)
+        public async Task<IEnumerable<Item>> FindAllAsync(string searchInput, bool reskinsExcluded)
         {
             searchInput = searchInput.ToLower();
-            List<Item> searchResult  = await _itemsCollection.Find(x => x.Name.ToLower().Contains(searchInput)).ToListAsync();
-            return searchResult.OrderByDescending(item => item.Name);
+            //List<Item> searchResult = await _itemsCollection.AsQueryable().Where(x => x.Name.ToLower().Contains(searchInput)).ToListAsync();
+            IMongoQueryable<Item> searchResult = _itemsCollection.AsQueryable().Where(x => x.Name.ToLower().Contains(searchInput));
+            if (reskinsExcluded)
+            {
+                searchResult = searchResult.Where(x => !x.Reskin);
+            }
+            return await searchResult.OrderByDescending(item => item.Name).ToListAsync();
         }
             
-        public async Task<Item> GetRandomItemAsync() 
+        public async Task<Item> GetRandomItemAsync(bool reskinsExcluded) 
         {
-            BsonDocument[] pipeline = new[] { BsonDocument.Parse("{ $sample: {size:1} }") };
+            List<BsonDocument> pipeline = new List<BsonDocument>();
+            if (reskinsExcluded)
+            {
+                pipeline.Add(BsonDocument.Parse("{ $match: {reskin: false} }"));
+            }
+            pipeline.Add(BsonDocument.Parse("{ $sample: {size: 1} }"));
             List<Item> randomItem = await _itemsCollection.Aggregate<Item>(pipeline).ToListAsync();
             return randomItem[0];
-
-            //(Item)_itemsCollection.AsQueryable().Sample(1);
         }
-            
-        
-        
-
-
     }
 }

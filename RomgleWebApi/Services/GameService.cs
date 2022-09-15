@@ -19,7 +19,8 @@ namespace RomgleWebApi.Services
             _playersService = playersService;
         }
         
-        public Task<GuessResult> CheckGuessAsync(string guessId, string playerId, Gamemode mode) => WithPlayerAsync(playerId, async player =>
+        public Task<GuessResult> CheckGuessAsync(string guessId, string playerId, Gamemode mode, bool reskinsExcluded) 
+            => WithPlayerAsync(playerId, async player =>
         {
             Item guess = await _itemsService.GetAsync(guessId);
             GuessResult result = new GuessResult();
@@ -38,8 +39,8 @@ namespace RomgleWebApi.Services
                     Daily dailyItem = await _dailiesService.GetDailyItem();
                     newItem = await _itemsService.GetAsync(dailyItem.Id);
                 }
-                else newItem = await _itemsService.GetRandomItemAsync();
-                await StartNewGameAsync(player, newItem.Id, mode);
+                else newItem = await _itemsService.GetRandomItemAsync(reskinsExcluded);
+                await StartNewGameAsync(player, newItem.Id, mode, reskinsExcluded);
             }
             //TODO: Guest
 
@@ -150,7 +151,7 @@ namespace RomgleWebApi.Services
             await _playersService.UpdateAsync(player.Id, player);
         }
 
-        private async Task StartNewGameAsync(Player player, string targetItemId, Gamemode mode)
+        private async Task StartNewGameAsync(Player player, string targetItemId, Gamemode mode, bool reskinsExcluded)
         {
             player.CurrentGame = new Game
             {
@@ -158,6 +159,7 @@ namespace RomgleWebApi.Services
                 TargetItemId = targetItemId,
                 GuessItemIds = new List<string>(),
                 IsEnded = false,
+                ReskingExcluded = reskinsExcluded,
                 Mode = mode
             };
             await _playersService.UpdateAsync(player.Id, player);

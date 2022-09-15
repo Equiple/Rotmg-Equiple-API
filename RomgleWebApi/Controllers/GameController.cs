@@ -27,12 +27,12 @@ namespace RomgleWebApi.Controllers
         }
 
         [HttpGet("FindAll")]
-        public async Task<IEnumerable<Item>> FindAll(string searchInput) => 
-            await _itemsService.FindAllAsync(searchInput);
+        public async Task<IEnumerable<Item>> FindAll(string searchInput, bool reskinsExcluded) => 
+            await _itemsService.FindAllAsync(searchInput, reskinsExcluded); 
 
         [HttpPost("CheckGuess")]
-        public async Task<GuessResult> CheckGuess(string itemId, string playerId, Gamemode mode) =>
-            await _gameService.CheckGuessAsync(itemId, playerId, mode);
+        public async Task<GuessResult> CheckGuess(string itemId, string playerId, Gamemode mode, bool reskinsExcluded) =>
+            await _gameService.CheckGuessAsync(itemId, playerId, mode, reskinsExcluded);
 
         [HttpGet("WasDailyAttempted")]
         public async Task<bool> WasDailyAttempted(string playerId) =>
