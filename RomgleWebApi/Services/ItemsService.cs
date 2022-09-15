@@ -44,7 +44,8 @@ namespace RomgleWebApi.Services
         public async Task<IEnumerable<Item>> FindAllAsync(string searchInput)
         {
             searchInput = searchInput.ToLower();
-            return await _itemsCollection.Find(x => x.Name.ToLower().Contains(searchInput)).ToListAsync();
+            List<Item> searchResult  = await _itemsCollection.Find(x => x.Name.ToLower().Contains(searchInput)).ToListAsync();
+            return searchResult.OrderByDescending(item => item.Name);
         }
             
         public async Task<Item> GetRandomItemAsync() 
