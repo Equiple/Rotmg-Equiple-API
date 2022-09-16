@@ -50,16 +50,16 @@ namespace RomgleWebApi.Controllers
         public async Task<List<Item>> GetGuesses(string playerId) =>
             await _gameService.GetGuessesAsync(playerId);
 
-        [HttpGet("GetActiveGamemode")]
-        public async Task<Gamemode?> GetActiveGamemode(string playerId) =>
-            await _gameService.GetActiveGamemodeAsync(playerId);
+        [HttpGet("GetActiveGameOptions")]
+        public async Task<GameOptions?> GetActiveGameOptions(string playerId) =>
+            await _gameService.GetActiveGameOptionsAsync(playerId);
 
         [HttpGet("GetTargetItemName")]
         public async Task<string> GetTargetItemAsync(string playerId)=>
             await _gameService.GetTargetItemNameAsync(playerId);
 
         [HttpGet("GetGuess")]
-        public async Task<Item> GetGuess(string itemId) =>
+        public async Task<Item?> GetGuess(string itemId) =>
             await _itemsService.GetAsync(itemId);
 
         [HttpGet("GetHints")]
@@ -69,5 +69,17 @@ namespace RomgleWebApi.Controllers
         [HttpGet("GetAllHints")]
         public async Task<List<Hints>> GetHints(string playerId) =>
             await _gameService.GetHintsAsync(playerId);
+
+        [HttpPost("CloseTheGame")]
+        public async Task CloseTheGame(string playerId) =>
+            await _gameService.CloseTheGameAsync(playerId);
+
+        [HttpGet("GetCurrentStreak")]
+        public async Task<int?> GetCurrentStreak(string playerId) =>
+            await _gameService.GetCurrentStreakAsync(playerId);
+
+        [HttpGet("GetPlayer")]
+        public async Task<Player?> GetPlayer(string playerId) =>
+            await _playersService.GetAsync(playerId);
     }
 }

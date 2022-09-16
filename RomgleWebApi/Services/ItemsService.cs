@@ -55,14 +55,25 @@ namespace RomgleWebApi.Services
             
         public async Task<Item> GetRandomItemAsync(bool reskinsExcluded) 
         {
-            List<BsonDocument> pipeline = new List<BsonDocument>();
+            //List<BsonDocument> pipeline = new List<BsonDocument>();
+            IMongoQueryable<Item> randomItem;
             if (reskinsExcluded)
             {
-                pipeline.Add(BsonDocument.Parse("{ $match: {reskin: false} }"));
+                randomItem = _itemsCollection.AsQueryable().Where(x => !x.Reskin);
+                //pipeline.Add(BsonDocument.Parse("{ $match: { reskin:false} }"));
+            } else
+            {
+                randomItem = _itemsCollection.AsQueryable();
             }
-            pipeline.Add(BsonDocument.Parse("{ $sample: {size: 1} }"));
-            List<Item> randomItem = await _itemsCollection.Aggregate<Item>(pipeline).ToListAsync();
-            return randomItem[0];
+            Item itm = randomItem.Sample(1).First();
+            //pipeline.Add(BsonDocument.Parse("{ $sample: {size: 1} }"));
+            //List<Item> randomItem = await _itemsCollection.Aggregate<Item>(pipeline).ToListAsync();
+            if (itm == null)
+            {
+                throw new Exception("Query returned empty list.");
+            }
+            //return randomItem[0];
+            return itm;
         }
     }
 }

@@ -110,13 +110,32 @@ namespace RomgleWebApi.Services
             return target.Name;
         });
 
-        public Task<Gamemode?> GetActiveGamemodeAsync(string playerId) => WithPlayer<Gamemode?>(playerId, player =>
+        public Task<GameOptions?> GetActiveGameOptionsAsync(string playerId) => WithPlayer<GameOptions?>(playerId, player =>
         {
             if (player.HasActiveGame())
             {
-                return player.CurrentGame!.Mode;
+                return new GameOptions { Mode= player.CurrentGame!.Mode, ReskinsExcluded= player.CurrentGame!.ReskingExcluded };
             }
             else return null;
+        });
+
+        public Task<int?> GetCurrentStreakAsync(string playerId) => WithPlayer<int?>(playerId, player =>
+        {
+            if (player.CurrentGame!.Mode == Gamemode.Daily)
+            {
+                return player.DailyStats.CurrentStreak;
+            }
+            else if(player.CurrentGame.Mode == Gamemode.Normal)
+            {
+                return player.NormalStats.CurrentStreak;
+            }
+            else return null;
+        });
+
+        public Task CloseTheGameAsync(string playerId) => WithPlayer(playerId, async player =>
+        {
+            await UpdatePlayerScoreAsync(player, GameResult.Lost);
+            await _playersService.UpdateAsync(playerId, player);
         });
 
         //private methods
