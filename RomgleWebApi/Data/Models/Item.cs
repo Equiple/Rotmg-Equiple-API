@@ -21,11 +21,12 @@ namespace RomgleWebApi.Data.Models
         public int? NumberOfShots { get; set; } = 0;
         public int? XpBonus { get; set; } = 0;
         public int? Feedpower { get; set; } = 0;
+        public string? Tags { get; set; } = "";
 
         public override string ToString()
         {
-            return $"#{Type}: {Name} [{Tier}{IsReskin()}]\n\nDamage: {GetDamageRange()}\nRange: {Range} tiles\nShots: " +
-                $"{NumberOfShots}\nXP bonus: {XpBonus}%\nFeed power: {Feedpower}\n";
+            return $"#{Type}: {Name} [{Tier}{IsReskin()}]\nDamage: {GetDamageRange()}\nRange: {Range} tiles\nShots: " +
+                $"{NumberOfShots}\nXP bonus: {XpBonus}%\nFeed power: {Feedpower}\n <{Tags}>\n";
         }
 
         private string IsReskin()
