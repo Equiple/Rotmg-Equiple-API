@@ -45,7 +45,8 @@ namespace RomgleWebApi.Services
         {
             searchInput = searchInput.ToLower();
             //List<Item> searchResult = await _itemsCollection.AsQueryable().Where(x => x.Name.ToLower().Contains(searchInput)).ToListAsync();
-            IMongoQueryable<Item> searchResult = _itemsCollection.AsQueryable().Where(x => x.Name.ToLower().Contains(searchInput));
+            IMongoQueryable<Item> searchResult = _itemsCollection.AsQueryable().Where(
+                x => x.Name.ToLower().Contains(searchInput) || x.Tags.Contains(searchInput));
             if (reskinsExcluded)
             {
                 searchResult = searchResult.Where(x => !x.Reskin);
