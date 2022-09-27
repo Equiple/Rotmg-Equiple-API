@@ -33,8 +33,8 @@ namespace RomgleWebApi.Services
         public async Task<Daily> GetAsync(string id) =>
             await _dailiesCollection.Find(x => x.Id == id).FirstOrDefaultAsync();
 
-        public async Task<Daily?> GetAsync(DateTime timestamp) =>
-            await _dailiesCollection.Find(x => x.Timestamp == timestamp).FirstOrDefaultAsync();
+        public async Task<Daily> GetAsync(DateTime timestamp) =>
+            await _dailiesCollection.Find(x => x.Timestamp == timestamp).FirstAsync();
 
         private async Task<List<Daily>> GetAllAsync() =>
             await _dailiesCollection.Find(_ => true).ToListAsync();
@@ -51,15 +51,20 @@ namespace RomgleWebApi.Services
         private async Task RemoveAsync(string id) =>
             await _dailiesCollection.DeleteOneAsync(x => x.Id == id);
 
+        private async Task<bool> DoesExist(DateTime timestamp)
+        {
+            return await _dailiesCollection.Find(daily => daily.Timestamp == timestamp).AnyAsync();
+        }
+
         public async Task<Daily> GetDailyItem() 
         {
-            Daily today = await GetAsync(DateTime.Now.Date);
-            if (today is null)
+            bool doesExist = await DoesExist(DateTime.Now.Date);
+            if (!doesExist)
             {
-                Item itm = await _itemsService.GetRandomItemAsync(false);
-                await CreateAsync(itm.Id);
-                today = await GetAsync(itm.Id);
+                var itemId = _itemsService.GetRandomItem(reskinsExcluded: false).Id;
+                await CreateAsync(itemId);
             }
+            Daily today = await GetAsync(DateTime.Now.Date);
             return today;
         }
 

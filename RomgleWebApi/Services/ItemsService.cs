@@ -29,8 +29,10 @@ namespace RomgleWebApi.Services
         public async Task<List<Item>> GetAsync() =>
             await _itemsCollection.Find(_ => true).ToListAsync();
 
-        public async Task<Item?> GetAsync(string id) =>
-            await _itemsCollection.Find(x => x.Id == id).FirstOrDefaultAsync();
+        public async Task<Item> GetAsync(string id) 
+        {
+            return await _itemsCollection.Find(x => x.Id == id).FirstAsync();
+        }
 
         public async Task CreateAsync(Item newItem) =>
             await _itemsCollection.InsertOneAsync(newItem);
@@ -54,27 +56,19 @@ namespace RomgleWebApi.Services
             return await searchResult.OrderByDescending(item => item.Name).ToListAsync();
         }
             
-        public async Task<Item> GetRandomItemAsync(bool reskinsExcluded) 
+        public Item GetRandomItem(bool reskinsExcluded) 
         {
-            //List<BsonDocument> pipeline = new List<BsonDocument>();
-            IMongoQueryable<Item> randomItem;
+            IMongoQueryable<Item> itemQuery;
             if (reskinsExcluded)
             {
-                randomItem = _itemsCollection.AsQueryable().Where(x => !x.Reskin);
-                //pipeline.Add(BsonDocument.Parse("{ $match: { reskin:false} }"));
-            } else
+                itemQuery = _itemsCollection.AsQueryable().Where(x => !x.Reskin);
+            } 
+            else
             {
-                randomItem = _itemsCollection.AsQueryable();
+                itemQuery = _itemsCollection.AsQueryable();
             }
-            Item itm = randomItem.Sample(1).First();
-            //pipeline.Add(BsonDocument.Parse("{ $sample: {size: 1} }"));
-            //List<Item> randomItem = await _itemsCollection.Aggregate<Item>(pipeline).ToListAsync();
-            if (itm == null)
-            {
-                throw new Exception("Query returned empty list.");
-            }
-            //return randomItem[0];
-            return itm;
+            Item randomItem = itemQuery.Sample(1).First();
+            return randomItem;
         }
     }
 }

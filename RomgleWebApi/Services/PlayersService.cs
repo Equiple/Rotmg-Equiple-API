@@ -29,8 +29,10 @@ namespace RomgleWebApi.Services
         public async Task<List<Player>> GetAsync() =>
             await _playersCollection.Find(_ => true).ToListAsync();
 
-        public async Task<Player?> GetAsync(string id) =>
-            await _playersCollection.Find(x => x.Id == id).FirstOrDefaultAsync();
+        public async Task<Player> GetAsync(string id)
+        {
+            return await _playersCollection.Find(x => x.Id == id).FirstAsync();
+        }
 
         public async Task CreateAsync(Player newPlayer) =>
             await _playersCollection.InsertOneAsync(newPlayer);
@@ -48,12 +50,15 @@ namespace RomgleWebApi.Services
 
         public async Task<bool> DoesExistAsync(Player player)=>
             await _playersCollection.CountDocumentsAsync(x => x.Email == player.Email) == 1;
-   
 
         public async Task<bool> WasDailyAttemptedAsync(string playerId)
         {
             Player currentPlayer = await GetAsync(playerId);
-            return currentPlayer.DailyAttempted;
+            if (currentPlayer.EndedGames.Select(game => game.StartTime.Date == DateTime.Now.Date).Any())
+            {
+                return true;
+            }
+            return false;
         }
 
         public async Task<bool> CreateNewPlayerAsync(string name, string password, string email)

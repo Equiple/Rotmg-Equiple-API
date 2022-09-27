@@ -1,13 +1,8 @@
-using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Conventions;
 using RomgleWebApi.Data;
 using RomgleWebApi.Services;
-using System.ComponentModel;
-using System.Linq;
 using System.Text.Json.Serialization;
-using static RomgleWebApi.Data.RealmeyeScraper;
-
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -1,6 +1,8 @@
-﻿using RomgleWebApi.Data.Extensions;
+﻿using Microsoft.AspNetCore.Components.Forms;
+using RomgleWebApi.Data.Extensions;
 using RomgleWebApi.Data.Models;
 using System;
+using System.Drawing;
 using System.Runtime.InteropServices;
 
 namespace RomgleWebApi.Services
@@ -37,9 +39,12 @@ namespace RomgleWebApi.Services
                 if (mode == Gamemode.Daily)
                 {
                     Daily dailyItem = await _dailiesService.GetDailyItem();
-                    newItem = await _itemsService.GetAsync(dailyItem.Id);
+                    newItem = await _itemsService.GetAsync(dailyItem.TargetItemId);
                 }
-                else newItem = await _itemsService.GetRandomItemAsync(reskinsExcluded);
+                else 
+                {
+                    newItem = _itemsService.GetRandomItem(reskinsExcluded);
+                }
                 await StartNewGameAsync(player, newItem.Id, mode, reskinsExcluded);
             }
             //TODO: Guest
@@ -55,6 +60,7 @@ namespace RomgleWebApi.Services
             else if (player.IsOutOfTries())
             {
                 result.targetItem = await _itemsService.GetAsync(player.CurrentGame.TargetItemId);
+                await UpdatePlayerScoreAsync(player, GameResult.Lost);
                 result.Status = GuessStatus.Lost;
             }
             else
@@ -164,9 +170,10 @@ namespace RomgleWebApi.Services
                 {
                     player.DailyStats = player.DailyStats.AddLose();
                 }
-                player.DailyAttempted = true;
             }
             player.CurrentGame.IsEnded = true;
+            player.CurrentGame.GameResult = result;
+            player.EndedGames.Add(player.CurrentGame);
             await _playersService.UpdateAsync(player.Id, player);
         }
 
@@ -174,7 +181,7 @@ namespace RomgleWebApi.Services
         {
             player.CurrentGame = new Game
             {
-                StartTime = DateTime.Now,
+                StartTime = DateTime.Now.Date,
                 TargetItemId = targetItemId,
                 GuessItemIds = new List<string>(),
                 IsEnded = false,
@@ -186,18 +193,22 @@ namespace RomgleWebApi.Services
 
         private async Task<Hints> GetHintsAsync(Player currentPlayer, Item guess)
         {
-            if(currentPlayer.CurrentGame == null)
+            if (currentPlayer.CurrentGame == null)
             {
                 return new Hints();
             }
             Item target = await _itemsService.GetAsync(currentPlayer.CurrentGame.TargetItemId);
+            //IEnumerable<Item> items = await _itemsService.FindAllAsync("", reskinsExcluded: false);
+            //double maxDistance = GetMaxDistance(items); 
             Hints hints = new Hints
             {
-                Tier = GetBinaryHint(item => (item.Tier+item.Reskin)),
+                Tier = GetBinaryHint(item => (item.Tier + item.Reskin)),
                 Type = GetBinaryHint(item => item.Type),
                 NumberOfShots = GetHint(item => item.NumberOfShots),
                 XpBonus = GetHint(item => item.XpBonus),
-                Feedpower = GetHint(item => item.Feedpower)
+                Feedpower = GetHint(item => item.Feedpower),
+                DominantColor = GetHeatHint(item => item.DominantColor),
+                ColorClass = GetHeatHint(item => item.DominantColor)
             };
             return hints;
 
@@ -221,6 +232,83 @@ namespace RomgleWebApi.Services
                 T guessProperty = hintProperty(guess);
                 T targetProperty = hintProperty(target);
                 return guessProperty.Equals(targetProperty) ? Hint.Correct : Hint.Wrong;
+            }
+
+            string GetHeatHint(Func<Item, string> hintProperty)
+            {
+                //Max distance is mean of all item colour distances
+                const double maxDistance = 117.0; //255 * Math.Sqrt(3);
+                string guessProperty = hintProperty(guess);
+                string targetProperty = hintProperty(target);
+
+                Color targetColor = Color.FromName(targetProperty);
+                Color guessColor = Color.FromName(guessProperty);
+                double distance = GetColorDistance(targetColor, guessColor);
+
+                Color greenColor = Color.FromArgb(alpha: 255, red: 51, green: 153, blue: 0);
+                Color redColor = Color.FromArgb(alpha: 255, red: 204, green: 0, blue: 0);
+                //double distanceTwo = GetColorDistance(greenColor, redColor);
+
+                double distancePercent = MapValue(x: distance, xLeft: 0, xRight: maxDistance, resLeft: 0, resRight: 1);
+                if(distancePercent > 1)
+                {
+                    distancePercent = 1;
+                }
+                double[] vector = new double[] {
+                    (redColor.R - greenColor.R) * distancePercent,
+                    (redColor.G - greenColor.G) * distancePercent,
+                    (redColor.B - greenColor.B) * distancePercent
+                };
+
+                Color result = Color.FromArgb(alpha: 255,
+                    red: (int)(greenColor.R + vector[0]),
+                    green: (int)(greenColor.G + vector[1]),
+                    blue: (int)(greenColor.B + vector[2])
+                );
+
+                string colorHex = ColorTranslator.ToHtml(result);
+                return colorHex;
+            }
+
+            double GetMaxDistance(IEnumerable<Item> items)
+            {
+                List<double> distances = new List<double>();
+                foreach(Item item in items)
+                {
+                    foreach(Item anotherItem in items)
+                    {
+                        double distance = GetColorDistance(
+                            Color.FromName(item.DominantColor!),
+                            Color.FromName(anotherItem.DominantColor!)
+                        );
+                        if(distance != 0)
+                        {
+                            distances.Add(distance);
+                        }
+                    }
+                }
+                distances.Sort();
+                double result = distances[distances.Count / 2];
+                return result;
+            }
+
+            double GetColorDistance(Color color, Color secondColor) 
+            {
+                double red = Math.Pow(Convert.ToDouble(color.R) - secondColor.R, 2.0);
+                double green = Math.Pow(Convert.ToDouble(color.G) - secondColor.G, 2.0);
+                double blue = Math.Pow(Convert.ToDouble(color.B) - secondColor.B, 2.0);
+
+                double distance = Math.Sqrt(blue + green + red);
+                return distance;
+            }
+
+            double MapValue(double x, double xLeft, double xRight, double resLeft, double resRight)
+            {
+                if (xLeft == xRight)
+                {
+                    return resLeft;
+                }
+                return (x - xLeft) / (xRight - xLeft) * (resRight - resLeft) + resLeft;
             }
         }
 
