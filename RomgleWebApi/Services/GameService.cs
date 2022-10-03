@@ -249,7 +249,7 @@ namespace RomgleWebApi.Services
                 Color redColor = Color.FromArgb(alpha: 255, red: 204, green: 0, blue: 0);
                 //double distanceTwo = GetColorDistance(greenColor, redColor);
 
-                double distancePercent = MapValue(x: distance, xLeft: 0, xRight: maxDistance, resLeft: 0, resRight: 1);
+                double distancePercent = MapValue(x: distance, xLeft: 0, xRight: maxDistance*2, resLeft: 0, resRight: 1);
                 if(distancePercent > 1)
                 {
                     distancePercent = 1;

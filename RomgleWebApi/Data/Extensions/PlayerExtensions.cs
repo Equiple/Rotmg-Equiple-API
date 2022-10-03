@@ -2,7 +2,7 @@
 
 namespace RomgleWebApi.Data.Extensions
 {
-    public static class PlayerExtension
+    public static class PlayerExtensions
     {
         public static GameStatistic AddWin(this GameStatistic statistic, string guessId, int tries)
         {

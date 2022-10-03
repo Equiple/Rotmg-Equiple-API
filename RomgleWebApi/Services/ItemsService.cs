@@ -46,9 +46,10 @@ namespace RomgleWebApi.Services
         public async Task<IEnumerable<Item>> FindAllAsync(string searchInput, bool reskinsExcluded)
         {
             searchInput = searchInput.ToLower();
+            List<string> searchTags = searchInput.Split(' ').ToList();
             //List<Item> searchResult = await _itemsCollection.AsQueryable().Where(x => x.Name.ToLower().Contains(searchInput)).ToListAsync();
             IMongoQueryable<Item> searchResult = _itemsCollection.AsQueryable().Where(
-                x => x.Name.ToLower().Contains(searchInput) || x.Tags.Contains(searchInput));
+                x => x.Name.ToLower().Contains(searchInput) || searchTags.All(tag => x.Tags.Contains(tag)));
             if (reskinsExcluded)
             {
                 searchResult = searchResult.Where(x => !x.Reskin);
