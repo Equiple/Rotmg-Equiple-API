@@ -23,15 +23,18 @@ namespace RomgleWebApi.Services.Implementations
                 rotmgleDatabaseSettings.Value.ItemsCollectionName);
         }
 
-        public async Task<Item?> GetAsync(string id) =>
-            await _itemsCollection.Find(x => x.Id == id).FirstOrDefaultAsync();
+        public async Task<Item> GetAsync(string id) 
+        {
+            return await _itemsCollection.Find(x => x.Id == id).FirstAsync();
+        }
 
         public async Task<IReadOnlyList<Item>> FindAllAsync(string searchInput, bool reskinsExcluded)
         {
             searchInput = searchInput.ToLower();
+            List<string> searchTags = searchInput.Split(' ').ToList();
             //List<Item> searchResult = await _itemsCollection.AsQueryable().Where(x => x.Name.ToLower().Contains(searchInput)).ToListAsync();
             IMongoQueryable<Item> searchResult = _itemsCollection.AsQueryable().Where(
-                item => item.Name.ToLower().Contains(searchInput) || item.Tags.Contains(searchInput));
+                item => item.Name.ToLower().Contains(searchInput) || searchTags.All(tag => item.Tags.Contains(tag)));
             if (reskinsExcluded)
             {
                 searchResult = searchResult.Where(x => !x.Reskin);
@@ -41,22 +44,13 @@ namespace RomgleWebApi.Services.Implementations
 
         public async Task<Item> GetRandomItemAsync(bool reskinsExcluded)
         {
-            IMongoQueryable<Item> randomItem;
+            IMongoQueryable<Item> randomItem = itemsCollection.AsQueryable();
             if (reskinsExcluded)
             {
-                randomItem = _itemsCollection.AsQueryable().Where(x => !x.Reskin);
+                randomItem = _randomItem.Where(x => !x.Reskin);
             }
-            else
-            {
-                randomItem = _itemsCollection.AsQueryable();
-            }
-            Item item = await randomItem.Sample(1).FirstOrDefaultAsync();
-            if (item == null)
-            {
-                throw new Exception("Query returned empty list");
-            }
-
-            return item;
+            Item randomItem = await itemQuery.Sample(1).FirstAsync();
+            return randomItem;
         }
     }
 }

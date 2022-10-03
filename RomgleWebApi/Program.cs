@@ -9,8 +9,6 @@ using RomgleWebApi.Services;
 using RomgleWebApi.Services.Extensions;
 using RomgleWebApi.Services.Implementations;
 using System.Text.Json.Serialization;
-using static RomgleWebApi.Data.RealmeyeScraper;
-
 
 var builder = WebApplication.CreateBuilder(args);
 

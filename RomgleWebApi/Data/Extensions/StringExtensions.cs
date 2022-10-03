@@ -2,7 +2,7 @@
 
 namespace RomgleWebApi.Data.Extensions
 {
-    public static class StringExtension
+    public static class StringExtensions
     {
         public static string Strip(this string str)
         {

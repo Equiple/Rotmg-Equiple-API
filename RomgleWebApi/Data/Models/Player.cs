@@ -15,7 +15,6 @@ namespace RomgleWebApi.Data.Models
         public GameStatistic NormalStats { get; set; }
         public GameStatistic DailyStats { get; set; }
         public Game? CurrentGame { get; set; }
-        public bool DailyAttempted { get; set; } = false;
-
+        public List<Game> EndedGames { get; set; }
     }
 }

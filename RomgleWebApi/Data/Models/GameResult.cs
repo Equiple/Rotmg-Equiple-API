@@ -3,6 +3,7 @@
     public enum GameResult
     {
         Won,
-        Lost
+        Lost,
+        Expired
     }
 }

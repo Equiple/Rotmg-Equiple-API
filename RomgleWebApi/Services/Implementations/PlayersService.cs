@@ -55,8 +55,12 @@ namespace RomgleWebApi.Services.Implementations
 
         public async Task<bool> WasDailyAttemptedAsync(string id)
         {
-            Player? currentPlayer = await GetAsync(id);
-            return currentPlayer != null && currentPlayer.DailyAttempted;
+            Player currentPlayer = await GetAsync(id);
+            if (currentPlayer.EndedGames.Select(game => game.StartTime.Date == DateTime.Now.Date).Any())
+            {
+                return true;
+            }
+            return false;
         }
 
         public async Task<Player> CreateNewPlayerAsync(Identity identity)
