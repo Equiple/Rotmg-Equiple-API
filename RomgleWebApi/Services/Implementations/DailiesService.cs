@@ -1,17 +1,18 @@
 ﻿using Microsoft.Extensions.Options;
 using MongoDB.Driver;
-using RomgleWebApi.Data;
 using RomgleWebApi.Data.Models;
+using RomgleWebApi.Data.Settings;
 
-namespace RomgleWebApi.Services
+namespace RomgleWebApi.Services.Implementations
 {
-    public class DailiesService
+    public class DailiesService : IDailiesService
     {
         private readonly IMongoCollection<Daily> _dailiesCollection;
-        private readonly ItemsService _itemsService;
+        private readonly IItemsService _itemsService;
 
         public DailiesService(
-            IOptions<RotmgleDatabaseSettings> rotmgleDatabaseSettings, ItemsService itemsService)
+            IOptions<RotmgleDatabaseSettings> rotmgleDatabaseSettings,
+            IItemsService itemsService)
         {
             MongoClient mongoClient = new MongoClient(
                 rotmgleDatabaseSettings.Value.ConnectionString);
@@ -28,7 +29,7 @@ namespace RomgleWebApi.Services
         //Daily - - - - -  - - - - -  - - - - -  - - - - -  - - - - -  - - - - -  - - - - -  - - - - -  - - - - - 
         //
         public async Task<Daily> GetAsync() =>
-            await _dailiesCollection.Find(x => x.Timestamp == DateTime.Now.Date).FirstOrDefaultAsync();
+            await _dailiesCollection.Find(x => x.Timestamp == DateTime.UtcNow.Date).FirstOrDefaultAsync();
 
         public async Task<Daily> GetAsync(string id) =>
             await _dailiesCollection.Find(x => x.Id == id).FirstOrDefaultAsync();
@@ -43,7 +44,7 @@ namespace RomgleWebApi.Services
             await _dailiesCollection.InsertOneAsync(newDaily);
 
         public async Task CreateAsync(string itemId) =>
-            await _dailiesCollection.InsertOneAsync(new Daily { Timestamp = DateTime.Now.Date, TargetItemId = itemId });
+            await _dailiesCollection.InsertOneAsync(new Daily { Timestamp = DateTime.UtcNow.Date, TargetItemId = itemId });
 
         private async Task UpdateAsync(string id, Daily updatedItem) =>
             await _dailiesCollection.ReplaceOneAsync(x => x.Id == id, updatedItem);
@@ -53,7 +54,7 @@ namespace RomgleWebApi.Services
 
         public async Task<Daily> GetDailyItem() 
         {
-            Daily today = await GetAsync(DateTime.Now.Date);
+            Daily today = await GetAsync(DateTime.UtcNow.Date);
             if (today is null)
             {
                 Item itm = await _itemsService.GetRandomItemAsync(false);

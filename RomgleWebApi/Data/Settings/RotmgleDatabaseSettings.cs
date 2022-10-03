@@ -1,4 +1,4 @@
-﻿namespace RomgleWebApi.Data
+﻿namespace RomgleWebApi.Data.Settings
 {
     public class RotmgleDatabaseSettings
     {

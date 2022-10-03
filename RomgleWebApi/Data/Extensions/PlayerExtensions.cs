@@ -1,4 +1,5 @@
 ﻿using RomgleWebApi.Data.Models;
+using RomgleWebApi.Data.Models.Auth;
 
 namespace RomgleWebApi.Data.Extensions
 {
@@ -42,6 +43,12 @@ namespace RomgleWebApi.Data.Extensions
             return player.CurrentGame != null && player.CurrentGame.GuessItemIds.Count == 10;
         }
 
-        
+        public static void RevokeRefreshTokens(this Player player)
+        {
+            foreach (RefreshToken token in player.RefreshTokens)
+            {
+                token.Revoke();
+            }
+        }
     }
 }

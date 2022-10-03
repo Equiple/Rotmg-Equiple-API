@@ -1,10 +1,13 @@
-using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Conventions;
-using RomgleWebApi.Data;
+using RomgleWebApi.Data.Settings;
+using RomgleWebApi.IdentityValidators;
+using RomgleWebApi.ModelBinding.ValueProviders.Factories;
 using RomgleWebApi.Services;
-using System.ComponentModel;
-using System.Linq;
+using RomgleWebApi.Services.Extensions;
+using RomgleWebApi.Services.Implementations;
 using System.Text.Json.Serialization;
 using static RomgleWebApi.Data.RealmeyeScraper;
 
@@ -13,26 +16,56 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
+IConfiguration authorizationConfig = builder.Configuration.GetSection("TokenAuthorization");
+
+TokenAuthorizationSettings authorizationSettings = new TokenAuthorizationSettings();
+authorizationConfig.Bind(authorizationSettings);
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = authorizationSettings.ValidateIssuer,
+            ValidIssuer = authorizationSettings.Issuer,
+
+            ValidateAudience = authorizationSettings.ValidateAudience,
+            ValidAudience = authorizationSettings.Audience,
+
+            ValidateLifetime = true,
+
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = authorizationSettings.GetSecurityKey()
+        };
+    });
+
 builder.Services.AddCors();
 
-builder.Services.AddControllers().AddJsonOptions(options => 
+builder.Services.AddControllers(options =>
+{
+    options.ValueProviderFactories.Add(new UserValueProviderFactory());
+    options.ValueProviderFactories.Add(new CookieValueProviderFactory());
+}).AddJsonOptions(options => 
 {
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
 ConventionPack mongoConventions = new ConventionPack();
 mongoConventions.Add(new EnumRepresentationConvention(BsonType.String));
-ConventionRegistry.Register("aMongo", mongoConventions, x => true);
+ConventionRegistry.Register("aMongo", mongoConventions, _ => true);
 
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.Configure<RotmgleDatabaseSettings>(
     builder.Configuration.GetSection("RotmgleDatabase"));
+builder.Services.Configure<TokenAuthorizationSettings>(authorizationConfig);
 
-builder.Services.AddSingleton<ItemsService>();
-builder.Services.AddSingleton<DailiesService>();
-builder.Services.AddSingleton<PlayersService>();
-builder.Services.AddSingleton<GameService>();
+builder.Services.AddAuthenticationService(
+    new SelfAuthenticationValidator());
+builder.Services.AddSingleton<IAccessTokenService, AccessTokenService>();
+builder.Services.AddSingleton<IItemsService, ItemsService>();
+builder.Services.AddSingleton<IDailiesService, DailiesService>();
+builder.Services.AddSingleton<IPlayersService, PlayersService>();
+builder.Services.AddSingleton<IGameService, GameService>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddSwaggerGen(); 
@@ -51,6 +84,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

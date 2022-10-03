@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RomgleWebApi.Data.Models;
+using RomgleWebApi.ModelBinding.Attributes;
 using RomgleWebApi.Services;
-using System.Runtime.CompilerServices;
 
 namespace RomgleWebApi.Controllers
 {
@@ -10,14 +10,18 @@ namespace RomgleWebApi.Controllers
     [Route("/")]
     public class GameController : ControllerBase
     {
-        private readonly ItemsService _itemsService;
-        private readonly PlayersService _playersService;
-        private readonly DailiesService _dailiesService;
-        private readonly GameService _gameService;
+        private readonly IItemsService _itemsService;
+        private readonly IPlayersService _playersService;
+        private readonly IDailiesService _dailiesService;
+        private readonly IGameService _gameService;
         private readonly ILogger<GameController> _logger;
 
-        public GameController(ILogger<GameController> logger,
-            ItemsService itemsService, PlayersService playersService, DailiesService dailiesService, GameService gameService)
+        public GameController(
+            ILogger<GameController> logger,
+            IItemsService itemsService,
+            IPlayersService playersService,
+            IDailiesService dailiesService,
+            IGameService gameService)
         {
             _logger = logger;
             _itemsService = itemsService;
@@ -27,59 +31,97 @@ namespace RomgleWebApi.Controllers
         }
 
         [HttpGet("FindAll")]
-        public async Task<IEnumerable<Item>> FindAll(string searchInput, bool reskinsExcluded) => 
-            await _itemsService.FindAllAsync(searchInput, reskinsExcluded); 
+        public async Task<IReadOnlyList<Item>> FindAll(string searchInput, bool reskinsExcluded)
+        {
+            IReadOnlyList<Item> items = await _itemsService.FindAllAsync(searchInput, reskinsExcluded);
+            return items;
+        }
 
+        [Authorize]
         [HttpPost("CheckGuess")]
-        public async Task<GuessResult> CheckGuess(string itemId, string playerId, Gamemode mode, bool reskinsExcluded) =>
-            await _gameService.CheckGuessAsync(itemId, playerId, mode, reskinsExcluded);
+        public async Task<GuessResult> CheckGuess([UserId] string playerId, string itemId, Gamemode mode, bool reskinsExcluded)
+        {
+            GuessResult result = await _gameService.CheckGuessAsync(playerId, itemId, mode, reskinsExcluded);
+            return result;
+        }
 
+        [Authorize]
         [HttpGet("WasDailyAttempted")]
-        public async Task<bool> WasDailyAttempted(string playerId) =>
-            await _playersService.WasDailyAttemptedAsync(playerId);
+        public async Task<bool> WasDailyAttempted([UserId] string playerId)
+        {
+            bool result = await _playersService.WasDailyAttemptedAsync(playerId);
+            return result;
+        }
 
-        [HttpPut("CreateNewPlayer")]
-        public async Task CreateNewPlayer(string name, string password, string email) =>
-            await _playersService.CreateNewPlayerAsync(name, password, email);
-
+        [Authorize]
         [HttpGet("GetTries")]
-        public async Task<int> GetTries(string playerId) =>
-            await _gameService.GetTriesAsync(playerId);
+        public async Task<int> GetTries([UserId] string playerId)
+        {
+            int tries = await _gameService.GetTriesAsync(playerId);
+            return tries;
+        }
 
+        [Authorize]
         [HttpGet("GetGuesses")]
-        public async Task<List<Item>> GetGuesses(string playerId) =>
-            await _gameService.GetGuessesAsync(playerId);
+        public async Task<IReadOnlyList<Item>> GetGuesses([UserId] string playerId)
+        {
+            IReadOnlyList<Item> guesses = await _gameService.GetGuessesAsync(playerId);
+            return guesses;
+        }
 
+        [Authorize]
         [HttpGet("GetActiveGameOptions")]
-        public async Task<GameOptions?> GetActiveGameOptions(string playerId) =>
-            await _gameService.GetActiveGameOptionsAsync(playerId);
+        public async Task<GameOptions?> GetActiveGameOptions([UserId] string playerId)
+        {
+            GameOptions? options = await _gameService.GetActiveGameOptionsAsync(playerId);
+            return options;
+        }
 
+        [Authorize]
         [HttpGet("GetTargetItemName")]
-        public async Task<string> GetTargetItemAsync(string playerId)=>
-            await _gameService.GetTargetItemNameAsync(playerId);
+        public async Task<string> GetTargetItemAsync([UserId] string playerId)
+        {
+            string item = await _gameService.GetTargetItemNameAsync(playerId);
+            return item;
+        }
 
+        [Authorize]
         [HttpGet("GetGuess")]
-        public async Task<Item?> GetGuess(string itemId) =>
-            await _itemsService.GetAsync(itemId);
+        public async Task<Item?> GetGuess(string itemId)
+        {
+            Item? guess = await _itemsService.GetAsync(itemId);
+            return guess;
+        }
 
+        [Authorize]
         [HttpGet("GetHints")]
-        public async Task<Hints> GetHints(string playerId, string itemId) =>
-            await _gameService.GetHintsAsync(playerId, itemId);
+        public async Task<Hints> GetHints([UserId] string playerId, string itemId)
+        {
+            Hints hints = await _gameService.GetHintsAsync(playerId, itemId);
+            return hints;
+        }
 
+        [Authorize]
         [HttpGet("GetAllHints")]
-        public async Task<List<Hints>> GetHints(string playerId) =>
-            await _gameService.GetHintsAsync(playerId);
+        public async Task<IReadOnlyList<Hints>> GetHints([UserId] string playerId)
+        {
+            IReadOnlyList<Hints> allHints = await _gameService.GetHintsAsync(playerId);
+            return allHints;
+        }
 
+        [Authorize]
         [HttpPost("CloseTheGame")]
-        public async Task CloseTheGame(string playerId) =>
+        public async Task CloseTheGame([UserId] string playerId)
+        {
             await _gameService.CloseTheGameAsync(playerId);
+        }
 
+        [Authorize]
         [HttpGet("GetCurrentStreak")]
-        public async Task<int?> GetCurrentStreak(string playerId) =>
-            await _gameService.GetCurrentStreakAsync(playerId);
-
-        [HttpGet("GetPlayer")]
-        public async Task<Player?> GetPlayer(string playerId) =>
-            await _playersService.GetAsync(playerId);
+        public async Task<int?> GetCurrentStreak([UserId] string playerId)
+        {
+            int? streak = await _gameService.GetCurrentStreakAsync(playerId);
+            return streak;
+        }
     }
 }
