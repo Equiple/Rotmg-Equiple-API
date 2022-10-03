@@ -204,7 +204,7 @@ namespace RomgleWebApi.Services
             {
                 Tier = GetBinaryHint(item => (item.Tier + item.Reskin)),
                 Type = GetBinaryHint(item => item.Type),
-                NumberOfShots = GetHint(item => item.NumberOfShots),
+                NumberOfShots = Hint.Correct,
                 XpBonus = GetHint(item => item.XpBonus),
                 Feedpower = GetHint(item => item.Feedpower),
                 DominantColor = GetHeatHint(item => item.DominantColor),
