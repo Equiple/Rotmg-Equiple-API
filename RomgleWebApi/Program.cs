@@ -2,12 +2,13 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Conventions;
+using RomgleWebApi.DAL;
 using RomgleWebApi.Data.Settings;
 using RomgleWebApi.IdentityValidators;
 using RomgleWebApi.ModelBinding.ValueProviders.Factories;
 using RomgleWebApi.Services;
-using RomgleWebApi.Services.Extensions;
 using RomgleWebApi.Services.Implementations;
+using RomgleWebApi.Services.ServiceCollectionExtensions;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -59,6 +60,7 @@ builder.Services.Configure<TokenAuthorizationSettings>(authorizationConfig);
 
 builder.Services.AddAuthenticationService(
     new SelfAuthenticationValidator());
+builder.Services.AddSingleton<IDataCollectionProvider, DefaultMongoDataCollectionProvider>();
 builder.Services.AddSingleton<IAccessTokenService, AccessTokenService>();
 builder.Services.AddSingleton<IItemsService, ItemsService>();
 builder.Services.AddSingleton<IDailiesService, DailiesService>();

@@ -2,9 +2,9 @@
 using RomgleWebApi.IdentityValidators;
 using RomgleWebApi.Services.Implementations;
 
-namespace RomgleWebApi.Services.Extensions
+namespace RomgleWebApi.Services.ServiceCollectionExtensions
 {
-    public static class ServiceCollectionAuthenticationServiceExtensions
+    public static class AuthenticationServiceExtensions
     {
         public static IServiceCollection AddAuthenticationService(
             this IServiceCollection services,

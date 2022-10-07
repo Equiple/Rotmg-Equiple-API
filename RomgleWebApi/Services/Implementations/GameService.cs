@@ -45,7 +45,7 @@ namespace RomgleWebApi.Services.Implementations
                 }
                 else 
                 {
-                    newItem = _itemsService.GetRandomItem(reskinsExcluded);
+                    newItem = await _itemsService.GetRandomItemAsync(reskinsExcluded);
                 }
                 await StartNewGameAsync(player, newItem.Id, mode, reskinsExcluded);
             }

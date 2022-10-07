@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
+using RomgleWebApi.DAL;
 using RomgleWebApi.Data.Models;
 using RomgleWebApi.Data.Settings;
 
@@ -11,16 +12,12 @@ namespace RomgleWebApi.Services.Implementations
         private readonly IMongoCollection<Item> _itemsCollection;
 
         public ItemsService(
-            IOptions<RotmgleDatabaseSettings> rotmgleDatabaseSettings)
+            IOptions<RotmgleDatabaseSettings> rotmgleDatabaseSettings,
+            IDataCollectionProvider dataCollectionProvider)
         {
-            var mongoClient = new MongoClient(
-                rotmgleDatabaseSettings.Value.ConnectionString);
-
-            var mongoDatabase = mongoClient.GetDatabase(
-                rotmgleDatabaseSettings.Value.DatabaseName);
-
-            _itemsCollection = mongoDatabase.GetCollection<Item>(
-                rotmgleDatabaseSettings.Value.ItemsCollectionName);
+            _itemsCollection = dataCollectionProvider
+                .GetDataCollection<Item>(rotmgleDatabaseSettings.Value.ItemsCollectionName)
+                .AsMongo();
         }
 
         public async Task<Item> GetAsync(string id) 
@@ -44,10 +41,10 @@ namespace RomgleWebApi.Services.Implementations
 
         public async Task<Item> GetRandomItemAsync(bool reskinsExcluded)
         {
-            IMongoQueryable<Item> randomItem = itemsCollection.AsQueryable();
+            IMongoQueryable<Item> itemQuery = _itemsCollection.AsQueryable();
             if (reskinsExcluded)
             {
-                randomItem = _randomItem.Where(x => !x.Reskin);
+                itemQuery = itemQuery.Where(x => !x.Reskin);
             }
             Item randomItem = await itemQuery.Sample(1).FirstAsync();
             return randomItem;

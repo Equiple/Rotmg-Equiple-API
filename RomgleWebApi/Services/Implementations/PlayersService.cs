@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
+using RomgleWebApi.DAL;
 using RomgleWebApi.Data.Models;
 using RomgleWebApi.Data.Models.Auth;
 using RomgleWebApi.Data.Settings;
@@ -12,16 +13,12 @@ namespace RomgleWebApi.Services.Implementations
         private readonly IMongoCollection<Player> _playersCollection;
 
         public PlayersService(
-            IOptions<RotmgleDatabaseSettings> rotmgleDatabaseSettings)
+            IOptions<RotmgleDatabaseSettings> rotmgleDatabaseSettings,
+            IDataCollectionProvider dataCollectionProvider)
         {
-            var mongoClient = new MongoClient(
-                rotmgleDatabaseSettings.Value.ConnectionString);
-
-            var mongoDatabase = mongoClient.GetDatabase(
-                rotmgleDatabaseSettings.Value.DatabaseName);
-
-            _playersCollection = mongoDatabase.GetCollection<Player>(
-                rotmgleDatabaseSettings.Value.PlayersCollectionName);
+            _playersCollection = dataCollectionProvider
+                .GetDataCollection<Player>(rotmgleDatabaseSettings.Value.PlayersCollectionName)
+                .AsMongo();
         }
 
         public async Task<Player> GetAsync(string id)
@@ -34,7 +31,9 @@ namespace RomgleWebApi.Services.Implementations
         {
             Player? player = await _playersCollection
                 .Find(player => player.Identities
-                    .Any(playerIdentity => playerIdentity.Provider == identity.Provider && playerIdentity.Id == player.Id))
+                    .Any(playerIdentity =>
+                        playerIdentity.Provider == identity.Provider &&
+                        playerIdentity.Id == player.Id))
                 .FirstOrDefaultAsync();
             return player;
         }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using RomgleWebApi.DAL;
 using RomgleWebApi.Data.Models;
 using RomgleWebApi.Data.Settings;
 
@@ -12,16 +13,12 @@ namespace RomgleWebApi.Services.Implementations
 
         public DailiesService(
             IOptions<RotmgleDatabaseSettings> rotmgleDatabaseSettings,
+            IDataCollectionProvider dataCollectionProvider,
             IItemsService itemsService)
         {
-            MongoClient mongoClient = new MongoClient(
-                rotmgleDatabaseSettings.Value.ConnectionString);
-
-            IMongoDatabase mongoDatabase = mongoClient.GetDatabase(
-                rotmgleDatabaseSettings.Value.DatabaseName);
-
-            _dailiesCollection = mongoDatabase.GetCollection<Daily>(
-                rotmgleDatabaseSettings.Value.DailiesCollectionName);
+            _dailiesCollection = dataCollectionProvider
+                .GetDataCollection<Daily>(rotmgleDatabaseSettings.Value.DailiesCollectionName)
+                .AsMongo();
 
             _itemsService = itemsService;
         }
@@ -62,7 +59,8 @@ namespace RomgleWebApi.Services.Implementations
             bool doesExist = await DoesExist(DateTime.UtcNow.Date);
             if (!doesExist)
             {
-                var itemId = _itemsService.GetRandomItem(reskinsExcluded: false).Id;
+                Item item = await _itemsService.GetRandomItemAsync(reskinsExcluded: false);
+                string itemId = item.Id;
                 await CreateAsync(itemId);
             }
             Daily today = await GetAsync(DateTime.Now.Date);

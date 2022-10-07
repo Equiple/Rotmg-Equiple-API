@@ -2,14 +2,20 @@
 
 namespace RomgleWebApi.Data.Auth
 {
-    public struct AuthenticationValidatorResult
+    public readonly struct AuthenticationValidatorResult
     {
-        public AuthenticationValidatorResult(Identity identity)
+        public static AuthenticationValidatorResult Valid(Identity identity)
+        {
+            return new AuthenticationValidatorResult(identity);
+        }
+
+        public readonly static AuthenticationValidatorResult Invalid =
+            new AuthenticationValidatorResult();
+
+        private AuthenticationValidatorResult(Identity identity)
         {
             Identity = identity;
         }
-
-        public readonly static AuthenticationValidatorResult Invalid = new AuthenticationValidatorResult();
 
         public bool IsValid => Identity != null;
 

@@ -7,6 +7,6 @@ namespace RomgleWebApi.IdentityValidators
     {
         IdentityProvider IdentityProvider { get; }
 
-        Task<AuthenticationValidatorResult> Validate(AuthenticationPermit identity);
+        Task<AuthenticationValidatorResult> Validate(AuthenticationPermit permit);
     }
 }
