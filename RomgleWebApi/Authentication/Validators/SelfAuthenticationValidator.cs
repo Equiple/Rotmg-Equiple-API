@@ -1,7 +1,7 @@
 ﻿using RomgleWebApi.Data.Auth;
 using RomgleWebApi.Data.Models.Auth;
 
-namespace RomgleWebApi.IdentityValidators
+namespace RomgleWebApi.Authentication.AuthenticationValidators
 {
     public class SelfAuthenticationValidator : IAuthenticationValidator
     {

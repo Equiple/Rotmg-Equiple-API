@@ -1,41 +1,49 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.IdentityModel.JsonWebTokens;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Conventions;
+using RomgleWebApi.Authentication.AuthenticationHandlers;
+using RomgleWebApi.Authentication.AuthenticationValidators;
+using RomgleWebApi.Authentication.Options;
+using RomgleWebApi.Authorization.Handlers;
+using RomgleWebApi.Authorization.Requirements;
 using RomgleWebApi.DAL;
 using RomgleWebApi.Data.Settings;
-using RomgleWebApi.IdentityValidators;
 using RomgleWebApi.ModelBinding.ValueProviders.Factories;
 using RomgleWebApi.Services;
 using RomgleWebApi.Services.Implementations;
 using RomgleWebApi.Services.ServiceCollectionExtensions;
+using RomgleWebApi.Utils;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-IConfiguration authorizationConfig = builder.Configuration.GetSection("TokenAuthorization");
+const string authenticationScheme = "AccessToken";
 
-TokenAuthorizationSettings authorizationSettings = new TokenAuthorizationSettings();
-authorizationConfig.Bind(authorizationSettings);
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
+builder.Services.AddAuthentication(authenticationScheme)
+    .AddScheme<TokenAuthenticationOptions, TokenAuthenticationHandler>(
+        authenticationScheme,
+        options =>
         {
-            ValidateIssuer = authorizationSettings.ValidateIssuer,
-            ValidIssuer = authorizationSettings.Issuer,
+            options.IgnoreExpiration = true;
+        });
 
-            ValidateAudience = authorizationSettings.ValidateAudience,
-            ValidAudience = authorizationSettings.Audience,
-
-            ValidateLifetime = true,
-
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = authorizationSettings.GetSecurityKey()
-        };
-    });
+builder.Services.AddAuthorization(options =>
+{
+    AuthorizationPolicy basePolicy = new AuthorizationPolicyBuilder()
+        .AddAuthenticationSchemes(authenticationScheme)
+        .RequireAuthenticatedUser()
+        .Build();
+    options.DefaultPolicy = new AuthorizationPolicyBuilder()
+        .Combine(basePolicy)
+        .AddRequirements(new ExpirationAuthorizationRequirement(JwtRegisteredClaimNames.Exp))
+        .Build();
+    options.AddPolicy(PolicyNames.IgnoreExpiration, policyBuilder => policyBuilder
+        .Combine(basePolicy));
+});
+builder.Services.AddSingleton<IAuthorizationHandler, ExpirationAuthorizationHandler>();
 
 builder.Services.AddCors();
 
@@ -56,12 +64,13 @@ builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.Configure<RotmgleDatabaseSettings>(
     builder.Configuration.GetSection("RotmgleDatabase"));
-builder.Services.Configure<TokenAuthorizationSettings>(authorizationConfig);
+builder.Services.Configure<TokenAuthorizationSettings>(
+    builder.Configuration.GetSection("TokenAuthorization"));
 
 builder.Services.AddAuthenticationService(
     new SelfAuthenticationValidator());
 builder.Services.AddSingleton<IDataCollectionProvider, DefaultMongoDataCollectionProvider>();
-builder.Services.AddSingleton<IAccessTokenService, AccessTokenService>();
+builder.Services.AddSingleton<IAccessTokenService, JWTService>();
 builder.Services.AddSingleton<IItemsService, ItemsService>();
 builder.Services.AddSingleton<IDailiesService, DailiesService>();
 builder.Services.AddSingleton<IPlayersService, PlayersService>();

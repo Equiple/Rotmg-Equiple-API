@@ -11,6 +11,7 @@ namespace RomgleWebApi.Data.Models
         public string Id { get; set; }
         public List<Identity> Identities { get; set; }
         public List<RefreshToken> RefreshTokens { get; set; }
+        public string SecretKey { get; set; }
         public DateTime RegistrationDate { get; set; }
         public GameStatistic NormalStats { get; set; }
         public GameStatistic DailyStats { get; set; }

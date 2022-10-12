@@ -1,10 +1,10 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using RomgleWebApi.Authentication.AuthenticationValidators;
 using RomgleWebApi.Data.Auth;
 using RomgleWebApi.Data.Extensions;
 using RomgleWebApi.Data.Models;
 using RomgleWebApi.Data.Models.Auth;
-using RomgleWebApi.IdentityValidators;
 using RomgleWebApi.Services;
 using RomgleWebApi.Services.ServiceCollectionExtensions;
 using RotmgleWebApiTests.Data.Models.Auth;
@@ -170,6 +170,56 @@ namespace RotmgleWebApiTests.IntegrationTests
                     securedEndpointResponse.StatusCode,
                     Is.EqualTo(HttpStatusCode.OK),
                     AssertMessages.StatusCode);
+            });
+        }
+
+        [Test]
+        public async Task LoggedOutRequestToSecuredEndpoint_Returns401()
+        {
+            //Arrange
+            (IAuthenticationValidator authenValidator, AuthenticationPermit permit) =
+                ArrangeAuthenticationValidator(identity => AuthenticationValidatorResult.Valid(identity));
+            ArrangeServices(services =>
+            {
+                services.AddAuthenticationService(authenValidator);
+            });
+            HttpClient client = GetClient();
+
+            //Act
+            (HttpResponseMessage authenResponse, AuthenticationResponse? authenModel) =
+                await Authenticate(client, permit);
+            AuthenticationHeaderValue authorizationHeader = AuthenticationHeaderValue.Parse(
+                $"Bearer {authenModel?.AccessToken}");
+
+            HttpRequestMessage logoutRequest = new HttpRequestMessage
+            {
+                Method = HttpMethod.Post,
+                RequestUri = new Uri("Authentication/Logout", UriKind.Relative)
+            };
+            logoutRequest.Headers.Authorization = authorizationHeader;
+
+            HttpRequestMessage securedEndpointRequest = new HttpRequestMessage
+            {
+                Method = HttpMethod.Get,
+                RequestUri = new Uri("GetTries", UriKind.Relative)
+            };
+            securedEndpointRequest.Headers.Authorization = authorizationHeader;
+
+            HttpResponseMessage logoutResponse = await client.SendAsync(logoutRequest);
+            HttpResponseMessage securedEndpointResponse = await client.SendAsync(securedEndpointRequest);
+
+            //Assert
+            Assert.Multiple(() =>
+            {
+                AssertAuthenticatedResponse(authenResponse, authenModel);
+                Assert.That(
+                    logoutResponse.StatusCode,
+                    Is.EqualTo(HttpStatusCode.OK),
+                    $"{AssertMessages.StatusCode} (logout)");
+                Assert.That(
+                    securedEndpointResponse.StatusCode,
+                    Is.EqualTo(HttpStatusCode.Unauthorized),
+                    $"{AssertMessages.StatusCode} (secured endpoint)");
             });
         }
 

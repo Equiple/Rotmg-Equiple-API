@@ -1,13 +1,14 @@
 ﻿using RomgleWebApi.Data.Models.Auth;
+using System.Security.Claims;
 
 namespace RomgleWebApi.Services
 {
     public interface IAccessTokenService
     {
-        string GenerateAccessToken(string playerId);
+        Task<string> GenerateAccessToken(string playerId);
 
         Task<RefreshToken> GenerateRefreshToken();
 
-        bool ValidateAccessTokenIgnoringLifetime(string authorizationHeader);
+        Task<ClaimsPrincipal?> ValidateAccessToken(string accessToken, bool ignoreExpiration = false);
     }
 }

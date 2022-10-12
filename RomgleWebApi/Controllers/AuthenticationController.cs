@@ -2,9 +2,9 @@
 using Microsoft.AspNetCore.Mvc;
 using RomgleWebApi.Data.Auth;
 using RomgleWebApi.Data.Models.Auth;
-using RomgleWebApi.Filters.Attributes;
 using RomgleWebApi.ModelBinding.Attributes;
 using RomgleWebApi.Services;
+using RomgleWebApi.Utils;
 
 namespace RomgleWebApi.Controllers
 {
@@ -41,12 +41,20 @@ namespace RomgleWebApi.Controllers
             return result;
         }
 
-        //[AuthorizeIgnoringLifetime]
+        [Authorize(Policy = PolicyNames.IgnoreExpiration)]
         [HttpPost("RefreshAccessToken")]
         public async Task<IAuthenticationResponse> RefreshAccessToken([UserId] string playerId, string refreshToken)
         {
             AuthenticationResult result = await _authenticationService.RefreshAccessToken(playerId, refreshToken);
             return result;
+        }
+
+        [Authorize]
+        [HttpPost("Logout")]
+        public async Task<IActionResult> Logout([UserId] string playerId)
+        {
+            await _authenticationService.Logout(playerId);
+            return Ok();
         }
     }
 }

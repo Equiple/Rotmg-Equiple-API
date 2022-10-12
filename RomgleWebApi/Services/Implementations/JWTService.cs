@@ -6,16 +6,15 @@ using RomgleWebApi.Data.Settings;
 using RomgleWebApi.Utils;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
 
 namespace RomgleWebApi.Services.Implementations
 {
-    public class AccessTokenService : IAccessTokenService
+    public class JWTService : IAccessTokenService
     {
         private readonly IPlayersService _playersService;
         private readonly TokenAuthorizationSettings _authorizationSettings;
 
-        public AccessTokenService(
+        public JWTService(
             IPlayersService playersService,
             IOptions<TokenAuthorizationSettings> authorizationSettings)
         {
@@ -23,11 +22,12 @@ namespace RomgleWebApi.Services.Implementations
             _authorizationSettings = authorizationSettings.Value;
         }
 
-        public string GenerateAccessToken(string playerId)
+        public async Task<string> GenerateAccessToken(string playerId)
         {
+            Player player = await _playersService.GetAsync(playerId);
             ClaimsIdentity subject = new ClaimsIdentity(new[]
             {
-                new Claim(ClaimNames.UserId, playerId)
+                new Claim(CustomClaimNames.UserId, playerId)
             });
             SecurityTokenDescriptor tokenDescriptor = new SecurityTokenDescriptor
             {
@@ -35,7 +35,9 @@ namespace RomgleWebApi.Services.Implementations
                 Issuer = _authorizationSettings.Issuer,
                 Audience = _authorizationSettings.Audience,
                 Expires = DateTime.UtcNow.AddMinutes(_authorizationSettings.AccessTokenLifetimeMinutes),
-                SigningCredentials = new SigningCredentials(_authorizationSettings.GetSecurityKey(), SecurityAlgorithms.HmacSha256)
+                SigningCredentials = new SigningCredentials(
+                    SecurityUtils.GetSecurityKey(player.SecretKey),
+                    SecurityAlgorithms.HmacSha256)
             };
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
             JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken(tokenDescriptor);
@@ -46,12 +48,11 @@ namespace RomgleWebApi.Services.Implementations
 
         public async Task<RefreshToken> GenerateRefreshToken()
         {
-            const int tokenByteCount = 64;
             string tokenValue;
             bool alreadyExists;
             do
             {
-                tokenValue = Convert.ToBase64String(RandomNumberGenerator.GetBytes(tokenByteCount));
+                tokenValue = SecurityUtils.GenerateBase64SecurityKey();
                 Player? player = await _playersService.GetByRefreshTokenAsync(tokenValue);
                 alreadyExists = player != null;
             }
@@ -62,13 +63,23 @@ namespace RomgleWebApi.Services.Implementations
                 Token = tokenValue,
                 Expires = DateTime.UtcNow.AddDays(_authorizationSettings.RefreshTokenLifetimeDays)
             };
-
             return token;
         }
 
-        public bool ValidateAccessTokenIgnoringLifetime(string authorizationHeader)
+        public async Task<ClaimsPrincipal?> ValidateAccessToken(string accessToken, bool ignoreExpiration)
         {
-            //Regex.Match(authorizationHeader, @"(?<=^Bearer\s+)(\S+)$");
+            JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
+            if (!tokenHandler.CanReadToken(accessToken))
+            {
+                return null;
+            }
+            JwtSecurityToken jwt = tokenHandler.ReadJwtToken(accessToken);
+            Claim? userIdClaim = jwt.Claims.FirstOrDefault(claim => claim.Type == CustomClaimNames.UserId);
+            if (userIdClaim == null)
+            {
+                return null;
+            }
+            Player player = await _playersService.GetAsync(userIdClaim.Value);
             TokenValidationParameters validationParams = new TokenValidationParameters
             {
                 ValidateIssuer = _authorizationSettings.ValidateIssuer,
@@ -77,21 +88,20 @@ namespace RomgleWebApi.Services.Implementations
                 ValidateAudience = _authorizationSettings.ValidateAudience,
                 ValidAudience = _authorizationSettings.Audience,
 
-                ValidateLifetime = false,
+                ValidateLifetime = !ignoreExpiration,
 
                 ValidateIssuerSigningKey = true,
-                IssuerSigningKey = _authorizationSettings.GetSecurityKey()
+                IssuerSigningKey = SecurityUtils.GetSecurityKey(player.SecretKey)
             };
-            JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
 
             try
             {
-                tokenHandler.ValidateToken(authorizationHeader, validationParams, out _);
-                return true;
+                ClaimsPrincipal claimsPrincipal = tokenHandler.ValidateToken(accessToken, validationParams, out _);
+                return claimsPrincipal;
             }
             catch (SecurityTokenException)
             {
-                return false;
+                return null;
             }
         }
     }

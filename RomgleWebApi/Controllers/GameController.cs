@@ -6,6 +6,7 @@ using RomgleWebApi.Services;
 
 namespace RomgleWebApi.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("/")]
     public class GameController : ControllerBase
@@ -30,6 +31,7 @@ namespace RomgleWebApi.Controllers
             _gameService = gameService;
         }
 
+        [AllowAnonymous]
         [HttpGet("FindAll")]
         public async Task<IReadOnlyList<Item>> FindAll(string searchInput, bool reskinsExcluded)
         {
@@ -37,7 +39,6 @@ namespace RomgleWebApi.Controllers
             return items;
         }
 
-        [Authorize]
         [HttpPost("CheckGuess")]
         public async Task<GuessResult> CheckGuess([UserId] string playerId, string itemId, Gamemode mode, bool reskinsExcluded)
         {
@@ -45,7 +46,6 @@ namespace RomgleWebApi.Controllers
             return result;
         }
 
-        [Authorize]
         [HttpGet("WasDailyAttempted")]
         public async Task<bool> WasDailyAttempted([UserId] string playerId)
         {
@@ -53,7 +53,6 @@ namespace RomgleWebApi.Controllers
             return result;
         }
 
-        [Authorize]
         [HttpGet("GetTries")]
         public async Task<int> GetTries([UserId] string playerId)
         {
@@ -61,7 +60,6 @@ namespace RomgleWebApi.Controllers
             return tries;
         }
 
-        [Authorize]
         [HttpGet("GetGuesses")]
         public async Task<IReadOnlyList<Item>> GetGuesses([UserId] string playerId)
         {
@@ -69,7 +67,6 @@ namespace RomgleWebApi.Controllers
             return guesses;
         }
 
-        [Authorize]
         [HttpGet("GetActiveGameOptions")]
         public async Task<GameOptions?> GetActiveGameOptions([UserId] string playerId)
         {
@@ -77,7 +74,6 @@ namespace RomgleWebApi.Controllers
             return options;
         }
 
-        [Authorize]
         [HttpGet("GetTargetItemName")]
         public async Task<string> GetTargetItemAsync([UserId] string playerId)
         {
@@ -85,7 +81,6 @@ namespace RomgleWebApi.Controllers
             return item;
         }
 
-        [Authorize]
         [HttpGet("GetGuess")]
         public async Task<Item?> GetGuess(string itemId)
         {
@@ -93,7 +88,6 @@ namespace RomgleWebApi.Controllers
             return guess;
         }
 
-        [Authorize]
         [HttpGet("GetHints")]
         public async Task<Hints> GetHints([UserId] string playerId, string itemId)
         {
@@ -101,7 +95,6 @@ namespace RomgleWebApi.Controllers
             return hints;
         }
 
-        [Authorize]
         [HttpGet("GetAllHints")]
         public async Task<IReadOnlyList<Hints>> GetHints([UserId] string playerId)
         {
@@ -109,14 +102,12 @@ namespace RomgleWebApi.Controllers
             return allHints;
         }
 
-        [Authorize]
         [HttpPost("CloseTheGame")]
         public async Task CloseTheGame([UserId] string playerId)
         {
             await _gameService.CloseTheGameAsync(playerId);
         }
 
-        [Authorize]
         [HttpGet("GetCurrentStreak")]
         public async Task<int?> GetCurrentStreak([UserId] string playerId)
         {

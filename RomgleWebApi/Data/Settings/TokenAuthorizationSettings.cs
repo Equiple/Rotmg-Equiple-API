@@ -13,20 +13,8 @@ namespace RomgleWebApi.Data.Settings
 
         public int RefreshTokenLifetimeDays { get; set; }
 
-        public string SecretKey { get; set; }
-
         public bool ValidateIssuer => !string.IsNullOrWhiteSpace(Issuer);
 
         public bool ValidateAudience => !string.IsNullOrWhiteSpace(Audience);
-
-        public SecurityKey GetSecurityKey()
-        {
-            if (string.IsNullOrWhiteSpace(SecretKey))
-            {
-                throw new Exception($"{nameof(SecretKey)} must be configured");
-            }
-
-            return new SymmetricSecurityKey(Encoding.ASCII.GetBytes(SecretKey));
-        }
     }
 }

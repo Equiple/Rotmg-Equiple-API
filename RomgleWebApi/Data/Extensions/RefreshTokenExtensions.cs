@@ -21,6 +21,10 @@ namespace RomgleWebApi.Data.Extensions
 
         public static void Revoke(this RefreshToken refreshToken)
         {
+            if (!refreshToken.IsActive())
+            {
+                return;
+            }
             refreshToken.Revoked = DateTime.UtcNow;
         }
     }

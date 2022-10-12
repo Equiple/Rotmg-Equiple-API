@@ -4,7 +4,7 @@ namespace RomgleWebApi.ModelBinding.Attributes
 {
     public class UserIdAttribute : FromUserAttribute
     {
-        public UserIdAttribute() : base(ClaimNames.UserId)
+        public UserIdAttribute() : base(CustomClaimNames.UserId)
         {
         }
     }

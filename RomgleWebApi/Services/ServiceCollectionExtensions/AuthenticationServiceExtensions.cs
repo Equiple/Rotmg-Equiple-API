@@ -1,5 +1,5 @@
-﻿using RomgleWebApi.Data.Settings;
-using RomgleWebApi.IdentityValidators;
+﻿using RomgleWebApi.Authentication.AuthenticationValidators;
+using RomgleWebApi.Data.Settings;
 using RomgleWebApi.Services.Implementations;
 
 namespace RomgleWebApi.Services.ServiceCollectionExtensions

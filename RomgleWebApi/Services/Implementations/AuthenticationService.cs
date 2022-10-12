@@ -1,10 +1,10 @@
 ﻿using Microsoft.Extensions.Options;
+using RomgleWebApi.Authentication.AuthenticationValidators;
 using RomgleWebApi.Data.Auth;
 using RomgleWebApi.Data.Extensions;
 using RomgleWebApi.Data.Models;
 using RomgleWebApi.Data.Models.Auth;
 using RomgleWebApi.Data.Settings;
-using RomgleWebApi.IdentityValidators;
 
 namespace RomgleWebApi.Services.Implementations
 {
@@ -70,7 +70,7 @@ namespace RomgleWebApi.Services.Implementations
             }
             if (token.IsRevoked())
             {
-                player.RevokeRefreshTokens();
+                await Logout(player);
             }
             if (!token.IsActive())
             {
@@ -79,6 +79,19 @@ namespace RomgleWebApi.Services.Implementations
             token.Revoke();
 
             return await NewTokens(player);
+        }
+
+        public async Task Logout(string playerId)
+        {
+            Player player = await _playersService.GetAsync(playerId);
+            await Logout(player);
+        }
+
+        private async Task Logout(Player player)
+        {
+            player.RevokeRefreshTokens();
+            await _playersService.UpdateAsync(player);
+            await _playersService.RefreshSecretKeyAsync(player.Id);
         }
 
         private async Task<AuthenticationResult> Validated(
@@ -104,7 +117,7 @@ namespace RomgleWebApi.Services.Implementations
 
         private async Task<AuthenticationResult> NewTokens(Player player)
         {
-            string accessToken = _accessTokenService.GenerateAccessToken(player.Id);
+            string accessToken = await _accessTokenService.GenerateAccessToken(player.Id);
             RefreshToken refreshToken = await _accessTokenService.GenerateRefreshToken();
             player.RefreshTokens.Add(refreshToken);
             await _playersService.UpdateAsync(player);

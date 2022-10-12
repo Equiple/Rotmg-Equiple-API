@@ -16,5 +16,7 @@ namespace RomgleWebApi.Services
         Task<bool> WasDailyAttemptedAsync(string id);
 
         Task<Player> CreateNewPlayerAsync(Identity identity);
+
+        Task RefreshSecretKeyAsync(string playerId);
     }
 }

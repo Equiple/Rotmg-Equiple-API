@@ -1,6 +1,7 @@
 ﻿using RomgleWebApi.Data.Models;
 using RomgleWebApi.Data.Models.Auth;
 using RomgleWebApi.Services;
+using RomgleWebApi.Utils;
 
 namespace RotmgleWebApiTests.Mocks.Services
 {
@@ -32,6 +33,7 @@ namespace RotmgleWebApiTests.Mocks.Services
                 Id = Guid.NewGuid().ToString(),
                 Identities = new List<Identity> { identity },
                 RefreshTokens = new List<RefreshToken>(),
+                SecretKey = SecurityUtils.GenerateBase64SecurityKey(),
                 NormalStats = new GameStatistic(),
                 DailyStats = new GameStatistic(),
                 RegistrationDate = DateTime.UtcNow
@@ -39,6 +41,13 @@ namespace RotmgleWebApiTests.Mocks.Services
             _players.Add(newPlayer);
 
             return Task.FromResult(newPlayer);
+        }
+
+        public async Task RefreshSecretKeyAsync(string playerId)
+        {
+            Player player = await GetAsync(playerId);
+            player.SecretKey = SecurityUtils.GenerateBase64SecurityKey();
+            await UpdateAsync(player);
         }
 
         public Task<Player> GetAsync(string id)

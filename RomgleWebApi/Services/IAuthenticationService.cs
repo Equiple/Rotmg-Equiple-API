@@ -12,5 +12,7 @@ namespace RomgleWebApi.Services
         Task<AuthenticationResult> AddIdentity(string playerId, AuthenticationPermit permit);
 
         Task<AuthenticationResult> RefreshAccessToken(string playerId, string refreshToken);
+
+        Task Logout(string playerId);
     }
 }
