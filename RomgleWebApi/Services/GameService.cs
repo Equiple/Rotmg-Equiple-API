@@ -1,9 +1,7 @@
-﻿using Microsoft.AspNetCore.Components.Forms;
-using RomgleWebApi.Data.Extensions;
+﻿using RomgleWebApi.Data.Extensions;
 using RomgleWebApi.Data.Models;
-using System;
+using RomgleWebApi.Utils;
 using System.Drawing;
-using System.Runtime.InteropServices;
 
 namespace RomgleWebApi.Services
 {
@@ -13,14 +11,15 @@ namespace RomgleWebApi.Services
         private readonly DailiesService _dailiesService;
         private readonly PlayersService _playersService;
 
-
         public GameService(ItemsService itemsService, DailiesService dailiesService, PlayersService playersService)
         {
             _itemsService = itemsService;
             _dailiesService = dailiesService;
             _playersService = playersService;
         }
-        
+
+        #region public methods
+
         public Task<GuessResult> CheckGuessAsync(string guessId, string playerId, Gamemode mode, bool reskinsExcluded) 
             => WithPlayerAsync(playerId, async player =>
         {
@@ -30,7 +29,8 @@ namespace RomgleWebApi.Services
             {
                 if (player.CurrentGame!.Mode != mode)
                 {
-                    throw new Exception("Given gamemode is not the same as current game");
+                    throw new Exception($"Exception at {nameof(CheckGuessAsync)}, {nameof(GameService)} class: " +
+                        $"Gamemode [mode:{mode}] was not the same as current gamemode.\n");
                 }
             }
             else
@@ -125,27 +125,46 @@ namespace RomgleWebApi.Services
             else return null;
         });
 
-        public Task<int?> GetCurrentStreakAsync(string playerId) => WithPlayer<int?>(playerId, player =>
-        {
-            if (player.CurrentGame!.Mode == Gamemode.Daily)
-            {
-                return player.DailyStats.CurrentStreak;
-            }
-            else if(player.CurrentGame.Mode == Gamemode.Normal)
-            {
-                return player.NormalStats.CurrentStreak;
-            }
-            else return null;
-        });
-
         public Task CloseTheGameAsync(string playerId) => WithPlayer(playerId, async player =>
         {
             await UpdatePlayerScoreAsync(player, GameResult.Lost);
             await _playersService.UpdateAsync(playerId, player);
         });
 
-        //private methods
+        public Task<string> GetTargetItemImage(string playerId) => WithPlayerAsync(playerId, async player =>
+        {
+            if (player.CurrentGame.IsEnded)
+            {
+                string targetItemId = player.CurrentGame.TargetItemId;
+                Item item = await _itemsService.GetAsync(targetItemId);
+                return item.ImageURL;
+            }
+            else return "";
+        });
 
+        public Task<int> GetPlayerLeaderboardPlacementAsync(string playerId, Gamemode mode) => WithPlayerAsync(playerId, async player =>
+        {
+            List<PlayerProfile> leaderboard = new List<PlayerProfile>();
+            if (mode == Gamemode.Daily)
+            {
+                leaderboard = await _playersService.GetDailyLeaderboardAsync();
+
+            }
+            else if (mode == Gamemode.Normal)
+            {
+                leaderboard = await _playersService.GetNormalLeaderboardAsync();
+            }
+            else
+            {
+                throw new Exception($"Exception at {nameof(GetPlayerLeaderboardPlacementAsync)} method, {nameof(GameService)} class: " +
+                    $"Invalid {nameof(Gamemode)} value: [{mode}]\n");
+            }
+            return leaderboard.FindIndex(player => player.Id == playerId);
+        });
+
+        #endregion
+
+        #region private methods
         private async Task UpdatePlayerScoreAsync(Player player, GameResult result)
         {
             if (player.CurrentGame == null) return;
@@ -181,7 +200,8 @@ namespace RomgleWebApi.Services
         {
             player.CurrentGame = new Game
             {
-                StartTime = DateTime.Now.Date,
+                StartDate = DateTimeUtils.UtcNowDateString,
+                StartTime = DateTimeUtils.UtcNowTimeString,
                 TargetItemId = targetItemId,
                 GuessItemIds = new List<string>(),
                 IsEnded = false,
@@ -312,7 +332,8 @@ namespace RomgleWebApi.Services
             }
         }
 
-        //WithPlayer
+        #region with player methods
+
         private Task WithPlayer(string id, Action<Player> action)
         {
             return WithPlayerAsync(id, player =>
@@ -342,6 +363,8 @@ namespace RomgleWebApi.Services
             return await func(player);
         }
 
-        
+        #endregion
+
+        #endregion
     }
 }

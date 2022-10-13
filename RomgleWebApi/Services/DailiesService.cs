@@ -2,6 +2,7 @@
 using MongoDB.Driver;
 using RomgleWebApi.Data;
 using RomgleWebApi.Data.Models;
+using RomgleWebApi.Utils;
 
 namespace RomgleWebApi.Services
 {
@@ -25,46 +26,32 @@ namespace RomgleWebApi.Services
             _itemsService = itemsService;
         }
 
-        //Daily - - - - -  - - - - -  - - - - -  - - - - -  - - - - -  - - - - -  - - - - -  - - - - -  - - - - - 
-        //
+        #region public methods
+
         public async Task<Daily> GetAsync() =>
-            await _dailiesCollection.Find(x => x.Timestamp == DateTime.Now.Date).FirstOrDefaultAsync();
+            await _dailiesCollection.Find(x => x.StartDate == DateTimeUtils.UtcNowDateString).FirstOrDefaultAsync();
 
-        public async Task<Daily> GetAsync(string id) =>
-            await _dailiesCollection.Find(x => x.Id == id).FirstOrDefaultAsync();
+        public async Task<Daily> GetAsync(string timestamp) =>
+            await _dailiesCollection.Find(x => x.StartDate == timestamp).FirstAsync();
 
-        public async Task<Daily> GetAsync(DateTime timestamp) =>
-            await _dailiesCollection.Find(x => x.Timestamp == timestamp).FirstAsync();
-
-        private async Task<List<Daily>> GetAllAsync() =>
-            await _dailiesCollection.Find(_ => true).ToListAsync();
-
-        private async Task CreateAsync(Daily newDaily) =>
-            await _dailiesCollection.InsertOneAsync(newDaily);
-
-        public async Task CreateAsync(string itemId) =>
-            await _dailiesCollection.InsertOneAsync(new Daily { Timestamp = DateTime.Now.Date, TargetItemId = itemId });
-
-        private async Task UpdateAsync(string id, Daily updatedItem) =>
-            await _dailiesCollection.ReplaceOneAsync(x => x.Id == id, updatedItem);
-
-        private async Task RemoveAsync(string id) =>
-            await _dailiesCollection.DeleteOneAsync(x => x.Id == id);
-
-        private async Task<bool> DoesExist(DateTime timestamp)
+        public async Task CreateAsync(string itemId)
         {
-            return await _dailiesCollection.Find(daily => daily.Timestamp == timestamp).AnyAsync();
+            await _dailiesCollection.InsertOneAsync(new Daily
+            {
+                StartDate = DateTimeUtils.UtcNowDateString,
+                TargetItemId = itemId
+            });
         }
 
         public async Task<Daily> GetDailyItem() 
         {
-            bool doesExist = await DoesExist(DateTime.Now.Date);
+            bool doesExist = await DoesExist(DateTimeUtils.UtcNowDateString);
             if (!doesExist)
             {
                 var itemId = _itemsService.GetRandomItem(reskinsExcluded: false).Id;
                 await CreateAsync(itemId);
             }
-            Daily today = await GetAsync(DateTime.Now.Date);
+            Daily today = await GetAsync(DateTimeUtils.UtcNowDateString);
             return today;
         }
 
@@ -77,8 +64,17 @@ namespace RomgleWebApi.Services
             }
             else return false;
         }
-            
 
+        #endregion
+
+        #region private methods
+
+        private async Task<bool> DoesExist(string timestamp)
+        {
+            return await _dailiesCollection.Find(daily => daily.StartDate == timestamp).AnyAsync();
+        }
+
+        #endregion
     }
 }
 

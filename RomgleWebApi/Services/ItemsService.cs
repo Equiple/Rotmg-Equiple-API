@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Options;
-using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 using RomgleWebApi.Data;
@@ -24,12 +23,10 @@ namespace RomgleWebApi.Services
                 rotmgleDatabaseSettings.Value.ItemsCollectionName);
         }
 
-        //Item  - - - - -  - - - - -  - - - - -  - - - - -  - - - - -  - - - - -  - - - - -  - - - - -  - - - - - 
-        //
         public async Task<List<Item>> GetAsync() =>
             await _itemsCollection.Find(_ => true).ToListAsync();
 
-        public async Task<Item> GetAsync(string id) 
+        public async Task<Item> GetAsync(string id)
         {
             return await _itemsCollection.Find(x => x.Id == id).FirstAsync();
         }

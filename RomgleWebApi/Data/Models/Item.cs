@@ -23,6 +23,7 @@ namespace RomgleWebApi.Data.Models
         public string Type { get; set; } = "";
 
         //public string damageRange { get; set; } = "0";
+
         public int DamageBottom { get; set; } = 0;
 
         public int? DamageTop { get; set; }

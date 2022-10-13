@@ -1,20 +1,16 @@
 ﻿using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson;
-using MongoDB.Driver;
 
 namespace RomgleWebApi.Data.Models
 {
-    public class Player
+    public class PlayerProfile
     {
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
+
         public string Id { get; set; }
 
         public string Name { get; set; }
-
-        public string Email { get; set; }
-
-        public string Password { get; set; }
 
         public string RegistrationDate { get; set; } = "";
 
@@ -24,10 +20,9 @@ namespace RomgleWebApi.Data.Models
 
         public GameStatistic NormalStats { get; set; }
 
-        public GameStatistic DailyStats { get; set; } 
+        public GameStatistic DailyStats { get; set; }
 
-        public Game? CurrentGame { get; set; }
+        public int DailyGuesses { get; set; } = 0;
 
-        public List<Game> EndedGames { get; set; } = new List<Game>();
     }
 }

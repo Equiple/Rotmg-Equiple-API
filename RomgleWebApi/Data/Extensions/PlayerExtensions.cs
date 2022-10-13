@@ -1,4 +1,5 @@
 ﻿using RomgleWebApi.Data.Models;
+using RomgleWebApi.Utils;
 
 namespace RomgleWebApi.Data.Extensions
 {
@@ -19,6 +20,19 @@ namespace RomgleWebApi.Data.Extensions
                 statistic.BestGuess = guessId;
             }
             return statistic;
+        }
+
+        public static GameStatistic GetStats(this Player player, Gamemode mode)
+        {
+            if (mode == Gamemode.Normal)
+            {
+                return player.NormalStats;
+            }
+            else if (mode == Gamemode.Daily)
+            {
+                return player.DailyStats;
+            }
+            else throw new Exception($"Exception at GetStats(), PlayerExtensions class: Could not find statistic for {mode} gamemode.\n");
         }
 
         public static GameStatistic AddLose(this GameStatistic statistic)
@@ -42,6 +56,57 @@ namespace RomgleWebApi.Data.Extensions
             return player.CurrentGame != null && player.CurrentGame.GuessItemIds.Count == 10;
         }
 
-        
+        public static async Task<List<PlayerProfile>> ToPlayerProfile(this List<Player> players)
+        {
+            List<PlayerProfile> playerProfiles = new List<PlayerProfile>();
+            foreach (Player player in players)
+            {
+                playerProfiles.Add(player.ToProfile());
+            }
+            return playerProfiles;
+        }
+
+        public static PlayerProfile ToProfile(this Player player)
+        {
+            return new PlayerProfile { 
+                Id = player.Id,
+                Name = player.Name,
+                RegistrationDate = player.RegistrationDate,
+                RegistrationTime = player.RegistrationTime,
+                NormalStats = player.NormalStats,
+                DailyStats = player.DailyStats
+            };
+        }
+
+        public static PlayerProfile ToPlayerProfile(this Player player, int dailyGuesses)
+        {
+            return new PlayerProfile
+            {
+                Id = player.Id,
+                Name = player.Name,
+                RegistrationDate = player.RegistrationDate,
+                RegistrationTime = player.RegistrationTime,
+                NormalStats = player.NormalStats,
+                DailyStats = player.DailyStats,
+                DailyGuesses = dailyGuesses
+            };
+        }
+
+        public static Player GetRandomPlayer()
+        {
+            return new Player
+            {
+                Name = StringExtensions.GetRandomNameLookingString(),
+                RegistrationDate = DateTimeUtils.UtcNowDateString,
+                RegistrationTime = DateTimeUtils.UtcNowTimeString,
+                Email = StringExtensions.GetRandomNameLookingString()+"@hotmail.com",
+                Password = StringExtensions.GetRandomNameLookingString(),
+                EndedGames = GameExtensions.GetListOfRandomGames(),
+                CurrentGame = GameExtensions.GetRandomGame(),
+                DailyStats = GameStatisticExtensions.RandomGameStatistic(),
+                NormalStats = GameStatisticExtensions.RandomGameStatistic()
+            };
+        }
+
     }
 }

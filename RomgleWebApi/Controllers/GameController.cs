@@ -1,8 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using RomgleWebApi.Data.Models;
 using RomgleWebApi.Services;
-using System.Runtime.CompilerServices;
 
 namespace RomgleWebApi.Controllers
 {
@@ -37,6 +35,18 @@ namespace RomgleWebApi.Controllers
         [HttpGet("WasDailyAttempted")]
         public async Task<bool> WasDailyAttempted(string playerId) =>
             await _playersService.WasDailyAttemptedAsync(playerId);
+
+        [HttpGet("GetCurrentStreak")]
+        public async Task<int> GetCurrentStreak(string playerId, Gamemode mode)
+        {
+            return await _playersService.GetCurrentStreakAsync(playerId, mode);
+        }
+
+        [HttpGet("GetBestStreak")]
+        public async Task<int> GetBestStreak(string playerId, Gamemode mode)
+        {
+            return await _playersService.GetBestStreakAsync(playerId, mode);
+        }
 
         [HttpPut("CreateNewPlayer")]
         public async Task CreateNewPlayer(string name, string password, string email) =>
@@ -74,12 +84,28 @@ namespace RomgleWebApi.Controllers
         public async Task CloseTheGame(string playerId) =>
             await _gameService.CloseTheGameAsync(playerId);
 
-        [HttpGet("GetCurrentStreak")]
-        public async Task<int?> GetCurrentStreak(string playerId) =>
-            await _gameService.GetCurrentStreakAsync(playerId);
+        [HttpGet("GetTargetItemImage")]
+        public async Task<string> GetTargetItemImage(string playerId)
+        {
+            return await _gameService.GetTargetItemImage(playerId);
+        }
 
-        [HttpGet("GetPlayer")]
-        public async Task<Player?> GetPlayer(string playerId) =>
-            await _playersService.GetAsync(playerId);
+        [HttpGet("GetDailyLeaderboard")]
+        public async Task<List<PlayerProfile>> GetDailyLeaderboard()
+        {
+            return await _playersService.GetDailyLeaderboardAsync();
+        }
+
+        [HttpGet("GetNormalLeaderboard")]
+        public async Task<List<PlayerProfile>> GetNormalLeaderboard()
+        {
+            return await _playersService.GetNormalLeaderboardAsync();
+        }
+
+        [HttpGet("GetPlayerLeaderboardPlacement")]
+        public async Task<int> GetPlayerLeaderboardPlacement(string playerId, Gamemode mode)
+        {
+            return await _gameService.GetPlayerLeaderboardPlacementAsync(playerId, mode);
+        }
     }
 }

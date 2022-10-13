@@ -1,8 +1,10 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Conventions;
 using RomgleWebApi.Data;
+using RomgleWebApi.Data.Models;
 using RomgleWebApi.Services;
 using System.Text.Json.Serialization;
+using static MongoDB.Driver.WriteConcern;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,3 +53,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+//$"Exception at {nameof()} method, {nameof()} class: Exception message [{}]\n"

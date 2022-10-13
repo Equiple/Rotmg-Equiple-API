@@ -2,8 +2,8 @@
 {
     public enum GameResult
     {
-        Won,
-        Lost,
-        Expired
+        Won = 0,
+        Lost = 1,
+        Expired = 2
     }
 }

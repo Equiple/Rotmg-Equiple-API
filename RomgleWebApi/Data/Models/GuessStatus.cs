@@ -2,8 +2,8 @@
 {
     public enum GuessStatus
     {
-        Guessed,
-        NotGuessed,
-        Lost
+        Guessed = 0,
+        NotGuessed = 1,
+        Lost = 2
     }
 }
