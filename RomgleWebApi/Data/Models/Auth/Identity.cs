@@ -6,6 +6,6 @@
 
         public string Id { get; set; }
 
-        public IdentityDetails? Details { get; set; }
+        public IdentityDetails Details { get; set; }
     }
 }

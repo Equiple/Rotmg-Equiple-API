@@ -5,14 +5,12 @@ namespace RomgleWebApi.Services
 {
     public interface IAuthenticationService
     {
-        Task<AuthenticationResult> AuthenticateGuest(string? name);
+        Task<AuthenticationResult> AuthenticateGuestAsync();
 
-        Task<AuthenticationResult> Authenticate(AuthenticationPermit permit);
+        Task<AuthenticationResult> AuthenticateAsync(AuthenticationPermit permit, string? playerId = null);
 
-        Task<AuthenticationResult> AddIdentity(string playerId, AuthenticationPermit permit);
+        Task<AuthenticationResult> RefreshAccessTokenAsync(string playerId, string refreshToken);
 
-        Task<AuthenticationResult> RefreshAccessToken(string playerId, string refreshToken);
-
-        Task Logout(string playerId);
+        Task LogoutAsync(string playerId);
     }
 }

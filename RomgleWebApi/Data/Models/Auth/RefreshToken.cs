@@ -4,8 +4,8 @@
     {
         public string Token { get; set; }
 
-        public DateTime Expires { get; set; }
+        public DateAndTime Expires { get; set; }
 
-        public DateTime? Revoked { get; set; }
+        public DateAndTime? Revoked { get; set; }
     }
 }

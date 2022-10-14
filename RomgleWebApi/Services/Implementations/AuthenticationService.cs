@@ -1,10 +1,10 @@
 ﻿using Microsoft.Extensions.Options;
 using RomgleWebApi.Authentication.AuthenticationValidators;
 using RomgleWebApi.Data.Auth;
-using RomgleWebApi.Data.Extensions;
 using RomgleWebApi.Data.Models;
 using RomgleWebApi.Data.Models.Auth;
 using RomgleWebApi.Data.Settings;
+using RomgleWebApi.Extensions;
 
 namespace RomgleWebApi.Services.Implementations
 {
@@ -24,7 +24,7 @@ namespace RomgleWebApi.Services.Implementations
             _settings = settings.Value;
         }
 
-        public async Task<AuthenticationResult> AuthenticateGuest(string? name)
+        public async Task<AuthenticationResult> AuthenticateGuestAsync()
         {
             const string guestIdentityId = "guest";
             Identity identity = new Identity
@@ -33,34 +33,45 @@ namespace RomgleWebApi.Services.Implementations
                 Id = guestIdentityId,
                 Details = new IdentityDetails
                 {
-                    Name = name
+                    Name = "Itani"
                 }
             };
-            Player player = await _playersService.CreateNewPlayerAsync(identity);
+            Player player = await _playersService.CreateNewAsync(identity);
 
-            return await NewTokens(player);
+            return await Success(player);
         }
 
-        public Task<AuthenticationResult> Authenticate(AuthenticationPermit permit) => Validated(permit, async identity =>
+        public async Task<AuthenticationResult> AuthenticateAsync(
+            AuthenticationPermit permit,
+            string? playerId = null)
         {
-            Player? player = await _playersService.GetByIdentityAsync(identity);
-            player ??= await _playersService.CreateNewPlayerAsync(identity);
+            IAuthenticationValidator? validator = _settings.AuthenticationValidators
+                .FirstOrDefault(validator => validator.IdentityProvider == permit.Provider);
+            if (validator == null)
+            {
+                return AuthenticationResult.Failure;
+            }
+            AuthenticationValidatorResult validationResult = await validator.ValidateAsync(permit);
+            if (!validationResult.IsValid)
+            {
+                return AuthenticationResult.Failure;
+            }
+            Identity identity = validationResult.Identity!;
 
-            return await NewTokens(player);
-        });
+            Player player;
+            if (string.IsNullOrWhiteSpace(playerId))
+            {
+                player = await AuthenticateAsync(identity);
+            }
+            else
+            {
+                player = await AddIdentity(playerId, identity);
+            }
 
-        public Task<AuthenticationResult> AddIdentity(string playerId, AuthenticationPermit permit) =>
-            Validated(permit, async identity =>
-        {
-            Player player = await _playersService.GetAsync(playerId);
-            player.Identities.Add(identity); //think about multiple identities with same provider
-            await _playersService.UpdateAsync(player);
+            return await Success(player);
+        }
 
-            return AuthenticationResult.Success;
-        });
-        
-
-        public async Task<AuthenticationResult> RefreshAccessToken(string playerId, string refreshToken)
+        public async Task<AuthenticationResult> RefreshAccessTokenAsync(string playerId, string refreshToken)
         {
             Player player = await _playersService.GetAsync(playerId);
             RefreshToken? token = player.RefreshTokens.FirstOrDefault(token => token.Token == refreshToken);
@@ -70,59 +81,56 @@ namespace RomgleWebApi.Services.Implementations
             }
             if (token.IsRevoked())
             {
-                await Logout(player);
+                player.RevokeRefreshTokens();
+                await _playersService.UpdateAsync(player);
+                await _playersService.RefreshSecretKeyAsync(player.Id);
             }
             if (!token.IsActive())
             {
                 return AuthenticationResult.Failure;
             }
             token.Revoke();
+            await _playersService.UpdateAsync(player);
 
-            return await NewTokens(player);
+            return await Success(player);
         }
 
-        public async Task Logout(string playerId)
+        public async Task LogoutAsync(string playerId)
+        {
+            await _playersService.RefreshSecretKeyAsync(playerId);
+        }
+
+        private async Task<Player> AuthenticateAsync(Identity identity)
+        {
+            Player? player = await _playersService.GetByIdentityAsync(identity);
+            if (player == null)
+            {
+                player = await _playersService.CreateNewAsync(identity);
+            }
+            else
+            {
+                await _playersService.RefreshSecretKeyAsync(player.Id);
+            }
+            return player;
+        }
+
+        private async Task<Player> AddIdentity(string playerId, Identity identity)
         {
             Player player = await _playersService.GetAsync(playerId);
-            await Logout(player);
-        }
-
-        private async Task Logout(Player player)
-        {
-            player.RevokeRefreshTokens();
+            player.Identities.Add(identity);
             await _playersService.UpdateAsync(player);
             await _playersService.RefreshSecretKeyAsync(player.Id);
+            return player;
         }
 
-        private async Task<AuthenticationResult> Validated(
-            AuthenticationPermit permit,
-            Func<Identity, Task<AuthenticationResult>> handler)
+        private async Task<AuthenticationResult> Success(Player player)
         {
-            IAuthenticationValidator? validator = _settings.AuthenticationValidators
-                .FirstOrDefault(validator => validator.IdentityProvider == permit.Provider);
-            if (validator == null)
-            {
-                return AuthenticationResult.Failure;
-            }
-
-            AuthenticationValidatorResult validationResult = await validator.Validate(permit);
-            if (!validationResult.IsValid)
-            {
-                return AuthenticationResult.Failure;
-            }
-
-            AuthenticationResult result = await handler(validationResult.Identity!);
-            return result;
-        }
-
-        private async Task<AuthenticationResult> NewTokens(Player player)
-        {
-            string accessToken = await _accessTokenService.GenerateAccessToken(player.Id);
-            RefreshToken refreshToken = await _accessTokenService.GenerateRefreshToken();
+            string accessToken = await _accessTokenService.GenerateAccessTokenAsync(player.Id);
+            RefreshToken refreshToken = await _accessTokenService.GenerateRefreshTokenAsync();
             player.RefreshTokens.Add(refreshToken);
             await _playersService.UpdateAsync(player);
 
-            return AuthenticationResult.NewTokens(accessToken, refreshToken.Token);
+            return AuthenticationResult.Success(accessToken, refreshToken.Token);
         }
     }
 }

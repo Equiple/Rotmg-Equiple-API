@@ -1,9 +1,6 @@
-﻿using Microsoft.AspNetCore.Components.Forms;
-using RomgleWebApi.Data.Extensions;
-using RomgleWebApi.Data.Models;
-using System;
+﻿using RomgleWebApi.Data.Models;
+using RomgleWebApi.Extensions;
 using System.Drawing;
-using System.Runtime.InteropServices;
 
 namespace RomgleWebApi.Services.Implementations
 {
@@ -23,16 +20,19 @@ namespace RomgleWebApi.Services.Implementations
             _playersService = playersService;
         }
 
-        public Task<GuessResult> CheckGuessAsync(string playerId, string guessId, Gamemode mode, bool reskinsExcluded) =>
-            WithPlayerAsync(playerId, async player =>
+        #region public methods
+
+        public async Task<GuessResult> CheckGuessAsync(string playerId, string guessId, Gamemode mode, bool reskinsExcluded)
         {
+            Player player = await _playersService.GetAsync(playerId);
             Item guess = await _itemsService.GetAsync(guessId);
             GuessResult result = new GuessResult();
             if (player.HasActiveGame())
             {
                 if (player.CurrentGame!.Mode != mode)
                 {
-                    throw new Exception("Given gamemode is not the same as current game");
+                    throw new Exception($"Exception at {nameof(CheckGuessAsync)}, {nameof(GameService)} class: " +
+                        $"Gamemode [mode:{mode}] was not the same as current gamemode.\n");
                 }
             }
             else
@@ -40,10 +40,10 @@ namespace RomgleWebApi.Services.Implementations
                 Item newItem;
                 if (mode == Gamemode.Daily)
                 {
-                    Daily dailyItem = await _dailiesService.GetDailyItem();
+                    Daily dailyItem = await _dailiesService.GetAsync();
                     newItem = await _itemsService.GetAsync(dailyItem.TargetItemId);
                 }
-                else 
+                else
                 {
                     newItem = await _itemsService.GetRandomItemAsync(reskinsExcluded);
                 }
@@ -61,7 +61,7 @@ namespace RomgleWebApi.Services.Implementations
             }
             else if (player.IsOutOfTries())
             {
-                result.targetItem = await _itemsService.GetAsync(player.CurrentGame.TargetItemId);
+                result.TargetItem = await _itemsService.GetAsync(player.CurrentGame.TargetItemId);
                 await UpdatePlayerScoreAsync(player, GameResult.Lost);
                 result.Status = GuessStatus.Lost;
             }
@@ -71,35 +71,32 @@ namespace RomgleWebApi.Services.Implementations
                 result.Hints = await GetHintsAsync(player, guess);
             }
             return result;
-        });
+        }
 
-        public Task<int> GetTriesAsync(string playerId) => WithPlayer(playerId, player =>
+        public async Task<int> GetTriesAsync(string playerId)
         {
+            Player player = await _playersService.GetAsync(playerId);
             return player.CurrentGame?.GuessItemIds.Count ?? 0;
-        });
+        }
 
-        public Task<IReadOnlyList<Item>> GetGuessesAsync(string playerId) =>
-            WithPlayerAsync<IReadOnlyList<Item>>(playerId, async player =>
+        public async Task<IReadOnlyList<Item>> GetGuessesAsync(string playerId)
         {
+            Player player = await _playersService.GetAsync(playerId);
             List<Item> guesses = new List<Item>();
             if (player.CurrentGame != null)
             {
                 foreach (string itemId in player.CurrentGame.GuessItemIds)
                 {
-                    Item? item = await _itemsService.GetAsync(itemId);
-                    if (item == null)
-                    {
-                        throw new Exception($"Item with given id {itemId} does not exist");
-                    }
+                    Item item = await _itemsService.GetAsync(itemId);
                     guesses.Add(item);
                 }
             }
             return guesses;
-        });
+        }
 
-        public Task<IReadOnlyList<Hints>> GetHintsAsync(string playerId) =>
-            WithPlayerAsync<IReadOnlyList<Hints>>(playerId, async player =>
+        public async Task<IReadOnlyList<Hints>> GetHintsAsync(string playerId)
         {
+            Player player = await _playersService.GetAsync(playerId);
             List<Hints> hints = new List<Hints>();
             List<Item> guesses = new List<Item>();
             if (player.CurrentGame != null)
@@ -114,53 +111,58 @@ namespace RomgleWebApi.Services.Implementations
                 }
             }
             return hints;
-        });
+        }
 
-        public Task<Hints> GetHintsAsync(string playerId, string guessId) => WithPlayerAsync(playerId, async player =>
+        public async Task<Hints> GetHintsAsync(string playerId, string guessId)
         {
+            Player player = await _playersService.GetAsync(playerId);
             Item item = await _itemsService.GetAsync(guessId);
             return await GetHintsAsync(player, item);
-        });
+        }
 
-        public Task<string> GetTargetItemNameAsync(string playerId) => WithPlayerAsync(playerId, async player =>
+        public async Task<Item> GetTargetItemAsync(string playerId)
         {
+            Player player = await _playersService.GetAsync(playerId);
+            if (player.CurrentGame == null || !player.CurrentGame.IsEnded)
+            {
+                throw new Exception($"Exception at {nameof(GetTargetItemAsync)} method, " +
+                    $"{GetType().Name} class: Player {playerId} does not have ended game.\n");
+            }
             Item target = await _itemsService.GetAsync(player.CurrentGame.TargetItemId);
-            return target.Name;
-        });
+            return target;
+        }
 
-        public Task<GameOptions?> GetActiveGameOptionsAsync(string playerId) => WithPlayer(playerId, player =>
+        public async Task<GameOptions?> GetActiveGameOptionsAsync(string playerId)
         {
-            if (player.HasActiveGame())
+            Player player = await _playersService.GetAsync(playerId);
+            if (!player.HasActiveGame())
             {
-                return new GameOptions { Mode = player.CurrentGame!.Mode, ReskinsExcluded = player.CurrentGame!.ReskingExcluded };
+                return null;
             }
-            else return null;
-        });
+            return new GameOptions
+            {
+                Mode = player.CurrentGame!.Mode,
+                ReskinsExcluded = player.CurrentGame!.ReskingExcluded
+            };
+        }
 
-        public Task<int?> GetCurrentStreakAsync(string playerId) => WithPlayer<int?>(playerId, player =>
+        public async Task CloseTheGameAsync(string playerId)
         {
-            if (player.CurrentGame!.Mode == Gamemode.Daily)
-            {
-                return player.DailyStats.CurrentStreak;
-            }
-            else if (player.CurrentGame.Mode == Gamemode.Normal)
-            {
-                return player.NormalStats.CurrentStreak;
-            }
-            else return null;
-        });
-
-        public Task CloseTheGameAsync(string playerId) => WithPlayer(playerId, async player =>
-        {
+            Player player = await _playersService.GetAsync(playerId);
             await UpdatePlayerScoreAsync(player, GameResult.Lost);
             await _playersService.UpdateAsync(player);
-        });
+        }
 
-        //private methods
+        #endregion
+
+        #region private methods
 
         private async Task UpdatePlayerScoreAsync(Player player, GameResult result)
         {
-            if (player.CurrentGame == null) return;
+            if (player.CurrentGame == null)
+            {
+                return;
+            }
             if (player.CurrentGame.Mode == Gamemode.Normal)
             {
                 if (result == GameResult.Won)
@@ -193,7 +195,7 @@ namespace RomgleWebApi.Services.Implementations
         {
             player.CurrentGame = new Game
             {
-                StartTime = DateTime.UtcNow.Date,
+                StartDate = DateTime.UtcNow,
                 TargetItemId = targetItemId,
                 GuessItemIds = new List<string>(),
                 IsEnded = false,
@@ -324,36 +326,6 @@ namespace RomgleWebApi.Services.Implementations
             }
         }
 
-        //WithPlayer
-        private Task WithPlayer(string id, Action<Player> action)
-        {
-            return WithPlayerAsync(id, player =>
-            {
-                action(player);
-                return Task.FromResult(0);
-            });
-        }
-
-        private Task<T> WithPlayer<T>(string id, Func<Player, T> func)
-        {
-            return WithPlayerAsync(id, player => Task.FromResult(func(player)));
-        }
-
-        private Task WithPlayerAsync(string id, Func<Player, Task> func)
-        {
-            return WithPlayerAsync(id, async player =>
-            {
-                await func(player);
-                return 0;
-            });
-        }
-
-        private async Task<T> WithPlayerAsync<T>(string id, Func<Player, Task<T>> func)
-        {
-            Player player = await _playersService.GetAsync(id);
-            return await func(player);
-        }
-
-
+        #endregion
     }
 }

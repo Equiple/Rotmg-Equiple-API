@@ -20,9 +20,9 @@ namespace RomgleWebApi.Services.Implementations
                 .AsMongo();
         }
 
-        public async Task<Item> GetAsync(string id) 
+        public async Task<Item> GetAsync(string itemId) 
         {
-            return await _itemsCollection.Find(x => x.Id == id).FirstAsync();
+            return await _itemsCollection.Find(x => x.Id == itemId).FirstAsync();
         }
 
         public async Task<IReadOnlyList<Item>> FindAllAsync(string searchInput, bool reskinsExcluded)

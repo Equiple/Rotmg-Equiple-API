@@ -22,7 +22,7 @@ namespace RomgleWebApi.Services.Implementations
             _authorizationSettings = authorizationSettings.Value;
         }
 
-        public async Task<string> GenerateAccessToken(string playerId)
+        public async Task<string> GenerateAccessTokenAsync(string playerId)
         {
             Player player = await _playersService.GetAsync(playerId);
             ClaimsIdentity subject = new ClaimsIdentity(new[]
@@ -46,7 +46,7 @@ namespace RomgleWebApi.Services.Implementations
             return serializedToken;
         }
 
-        public async Task<RefreshToken> GenerateRefreshToken()
+        public async Task<RefreshToken> GenerateRefreshTokenAsync()
         {
             string tokenValue;
             bool alreadyExists;
@@ -66,7 +66,7 @@ namespace RomgleWebApi.Services.Implementations
             return token;
         }
 
-        public async Task<ClaimsPrincipal?> ValidateAccessToken(string accessToken, bool ignoreExpiration)
+        public async Task<ClaimsPrincipal?> ValidateAccessTokenAsync(string accessToken, bool ignoreExpiration)
         {
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
             if (!tokenHandler.CanReadToken(accessToken))

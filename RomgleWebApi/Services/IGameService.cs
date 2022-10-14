@@ -14,11 +14,9 @@ namespace RomgleWebApi.Services
 
         Task<Hints> GetHintsAsync(string playerId, string guessId);
 
-        Task<string> GetTargetItemNameAsync(string playerId);
+        Task<Item> GetTargetItemAsync(string playerId);
 
         Task<GameOptions?> GetActiveGameOptionsAsync(string playerId);
-
-        Task<int?> GetCurrentStreakAsync(string playerId);
 
         Task CloseTheGameAsync(string playerId);
     }

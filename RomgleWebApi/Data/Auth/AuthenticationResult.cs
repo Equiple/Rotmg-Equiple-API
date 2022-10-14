@@ -4,9 +4,7 @@ namespace RomgleWebApi.Data.Auth
 {
     public readonly struct AuthenticationResult : IAuthenticationResponse
     {
-        public static readonly AuthenticationResult Success = new AuthenticationResult(true);
-
-        public static AuthenticationResult NewTokens(string accessToken, string refreshToken)
+        public static AuthenticationResult Success(string accessToken, string refreshToken)
         {
             return new AuthenticationResult(true, accessToken, refreshToken);
         }

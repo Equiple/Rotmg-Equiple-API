@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
 using RomgleWebApi.Authentication.AuthenticationHandlers;
 using RomgleWebApi.Authentication.AuthenticationValidators;
@@ -8,6 +10,7 @@ using RomgleWebApi.Authentication.Options;
 using RomgleWebApi.Authorization.Handlers;
 using RomgleWebApi.Authorization.Requirements;
 using RomgleWebApi.DAL;
+using RomgleWebApi.Data.Models.BsonClassMaps;
 using RomgleWebApi.Data.Settings;
 using RomgleWebApi.ModelBinding.ValueProviders.Factories;
 using RomgleWebApi.Services;
@@ -56,9 +59,14 @@ builder.Services.AddControllers(options =>
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
-ConventionPack mongoConventions = new ConventionPack();
-mongoConventions.Add(new EnumRepresentationConvention(BsonType.String));
-ConventionRegistry.Register("aMongo", mongoConventions, _ => true);
+StaticRegistrationHelper.Scope(() =>
+{
+    ConventionPack mongoConventions = new ConventionPack();
+    mongoConventions.Add(new EnumRepresentationConvention(BsonType.String));
+    ConventionRegistry.Register("aMongo", mongoConventions, _ => true);
+
+    BsonClassMapInitializer.Initialize();
+});
 
 builder.Services.AddEndpointsApiExplorer();
 
@@ -99,3 +107,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+//$"Exception at {nameof()} method, {GetType().Name} class: Exception message [{}].\n"

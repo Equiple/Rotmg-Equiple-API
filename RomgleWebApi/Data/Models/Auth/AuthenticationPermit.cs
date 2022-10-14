@@ -5,7 +5,5 @@
         public IdentityProvider Provider { get; set; }
 
         public string IdToken { get; set; }
-
-        public IdentityDetails? Details { get; set; }
     }
 }

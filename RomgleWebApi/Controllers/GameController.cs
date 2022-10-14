@@ -53,6 +53,18 @@ namespace RomgleWebApi.Controllers
             return result;
         }
 
+        [HttpGet("GetCurrentStreak")]
+        public async Task<int> GetCurrentStreak(string playerId, Gamemode mode)
+        {
+            return await _playersService.GetCurrentStreakAsync(playerId, mode);
+        }
+
+        [HttpGet("GetBestStreak")]
+        public async Task<int> GetBestStreak(string playerId, Gamemode mode)
+        {
+            return await _playersService.GetBestStreakAsync(playerId, mode);
+        }
+
         [HttpGet("GetTries")]
         public async Task<int> GetTries([UserId] string playerId)
         {
@@ -74,17 +86,10 @@ namespace RomgleWebApi.Controllers
             return options;
         }
 
-        [HttpGet("GetTargetItemName")]
-        public async Task<string> GetTargetItemAsync([UserId] string playerId)
-        {
-            string item = await _gameService.GetTargetItemNameAsync(playerId);
-            return item;
-        }
-
         [HttpGet("GetGuess")]
-        public async Task<Item?> GetGuess(string itemId)
+        public async Task<Item> GetGuess(string itemId)
         {
-            Item? guess = await _itemsService.GetAsync(itemId);
+            Item guess = await _itemsService.GetAsync(itemId);
             return guess;
         }
 
@@ -108,11 +113,28 @@ namespace RomgleWebApi.Controllers
             await _gameService.CloseTheGameAsync(playerId);
         }
 
-        [HttpGet("GetCurrentStreak")]
-        public async Task<int?> GetCurrentStreak([UserId] string playerId)
+        [HttpGet("GetTargetItem")]
+        public async Task<Item> GetTargetItem(string playerId)
         {
-            int? streak = await _gameService.GetCurrentStreakAsync(playerId);
-            return streak;
+            return await _gameService.GetTargetItemAsync(playerId);
+        }
+
+        [HttpGet("GetDailyLeaderboard")]
+        public async Task<IReadOnlyList<PlayerProfile>> GetDailyLeaderboard()
+        {
+            return await _playersService.GetDailyLeaderboardAsync();
+        }
+
+        [HttpGet("GetNormalLeaderboard")]
+        public async Task<IReadOnlyList<PlayerProfile>> GetNormalLeaderboard()
+        {
+            return await _playersService.GetNormalLeaderboardAsync();
+        }
+
+        [HttpGet("GetPlayerLeaderboardPlacement")]
+        public async Task<int> GetPlayerLeaderboardPlacement(string playerId, Gamemode mode)
+        {
+            return await _playersService.GetPlayerLeaderboardPlacementAsync(playerId, mode);
         }
     }
 }

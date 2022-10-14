@@ -1,6 +1,6 @@
 ﻿using RomgleWebApi.Data.Models.Auth;
 
-namespace RomgleWebApi.Data.Extensions
+namespace RomgleWebApi.Extensions
 {
     public static class RefreshTokenExtensions
     {

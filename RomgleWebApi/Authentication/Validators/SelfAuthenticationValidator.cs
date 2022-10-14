@@ -7,7 +7,7 @@ namespace RomgleWebApi.Authentication.AuthenticationValidators
     {
         public IdentityProvider IdentityProvider => IdentityProvider.Self;
 
-        public Task<AuthenticationValidatorResult> Validate(AuthenticationPermit identity)
+        public Task<AuthenticationValidatorResult> ValidateAsync(AuthenticationPermit identity)
         {
             //impossible to re-authenticate as self-provided identity (aka guest)
             return Task.FromResult(AuthenticationValidatorResult.Invalid);

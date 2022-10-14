@@ -20,7 +20,7 @@ namespace RotmgleWebApiTests.Mocks.Services
             _players.AddRange(initialPlayers);
         }
 
-        public Task<Player> CreateNewPlayerAsync(Identity identity)
+        public Task<Player> CreateNewAsync(Identity identity)
         {
             Player? existingPlayer = GetByIdentityAsync(identity).Result;
             if (existingPlayer != null)
@@ -28,16 +28,8 @@ namespace RotmgleWebApiTests.Mocks.Services
                 throw new Exception($"Player with given identity {identity.Provider}:{identity.Id} already exists");
             }
 
-            Player newPlayer = new Player
-            {
-                Id = Guid.NewGuid().ToString(),
-                Identities = new List<Identity> { identity },
-                RefreshTokens = new List<RefreshToken>(),
-                SecretKey = SecurityUtils.GenerateBase64SecurityKey(),
-                NormalStats = new GameStatistic(),
-                DailyStats = new GameStatistic(),
-                RegistrationDate = DateTime.UtcNow
-            };
+            Player newPlayer = PlayerUtils.Create(identity, SecurityUtils.GenerateBase64SecurityKey());
+            newPlayer.Id = Guid.NewGuid().ToString();
             _players.Add(newPlayer);
 
             return Task.FromResult(newPlayer);
@@ -80,11 +72,42 @@ namespace RotmgleWebApiTests.Mocks.Services
 
         public Task<bool> WasDailyAttemptedAsync(string id)
         {
-            Player player = GetAsync(id).Result;
-            return Task.FromResult(player.EndedGames
-                .Any(game =>
-                    game.Mode == Gamemode.Daily &&
-                    game.StartTime.Date == DateTime.UtcNow.Date));
+            throw new NotImplementedException();
+        }
+
+        public Task<int> GetBestStreakAsync(string playerId, Gamemode mode)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<int> GetCurrentStreakAsync(string playerId, Gamemode mode)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<DetailedGameStatistic> GetPlayerStatsAsync(string playerId, Gamemode mode)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<PlayerProfile> GetPlayerProfileAsync(string playerId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IReadOnlyList<PlayerProfile>> GetDailyLeaderboardAsync()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IReadOnlyList<PlayerProfile>> GetNormalLeaderboardAsync()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<int> GetPlayerLeaderboardPlacementAsync(string playerId, Gamemode mode)
+        {
+            throw new NotImplementedException();
         }
     }
 }

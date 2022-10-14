@@ -4,7 +4,7 @@ namespace RomgleWebApi.Services
 {
     public interface IItemsService
     {
-        Task<Item?> GetAsync(string id);
+        Task<Item> GetAsync(string itemId);
 
         Task<IReadOnlyList<Item>> FindAllAsync(string searchInput, bool reskinsExcluded);
 

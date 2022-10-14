@@ -1,7 +1,7 @@
 ﻿using MongoDB.Driver;
 using RomgleWebApi.Data.Models;
 
-namespace RomgleWebApi.Data.Extensions
+namespace RomgleWebApi.Extensions
 {
     public static class ItemExtensions
     {

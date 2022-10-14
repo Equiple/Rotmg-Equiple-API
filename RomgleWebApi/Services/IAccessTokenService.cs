@@ -5,10 +5,10 @@ namespace RomgleWebApi.Services
 {
     public interface IAccessTokenService
     {
-        Task<string> GenerateAccessToken(string playerId);
+        Task<string> GenerateAccessTokenAsync(string playerId);
 
-        Task<RefreshToken> GenerateRefreshToken();
+        Task<RefreshToken> GenerateRefreshTokenAsync();
 
-        Task<ClaimsPrincipal?> ValidateAccessToken(string accessToken, bool ignoreExpiration = false);
+        Task<ClaimsPrincipal?> ValidateAccessTokenAsync(string accessToken, bool ignoreExpiration = false);
     }
 }

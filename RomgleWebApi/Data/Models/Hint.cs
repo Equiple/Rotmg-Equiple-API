@@ -2,9 +2,9 @@
 {
     public enum Hint
     {
-        Greater,
-        Less,
-        Correct,
-        Wrong
+        Greater = 0,
+        Less = 1,
+        Correct = 2,
+        Wrong = 3
     }
 }

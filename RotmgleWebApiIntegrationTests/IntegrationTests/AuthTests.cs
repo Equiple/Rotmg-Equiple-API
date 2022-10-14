@@ -2,9 +2,9 @@
 using Moq;
 using RomgleWebApi.Authentication.AuthenticationValidators;
 using RomgleWebApi.Data.Auth;
-using RomgleWebApi.Data.Extensions;
 using RomgleWebApi.Data.Models;
 using RomgleWebApi.Data.Models.Auth;
+using RomgleWebApi.Extensions;
 using RomgleWebApi.Services;
 using RomgleWebApi.Services.ServiceCollectionExtensions;
 using RotmgleWebApiTests.Data.Models.Auth;
@@ -265,13 +265,16 @@ namespace RotmgleWebApiTests.IntegrationTests
                 Provider = IdentityProvider.Google,
                 IdToken = "ValidIdToken"
             };
-            Identity identity = permit.CreateIdentity("IdentityId");
+            Identity identity = permit.CreateIdentity("IdentityId", new IdentityDetails
+            {
+                Name = "Test"
+            });
             Mock<IAuthenticationValidator> validatorMock = new Mock<IAuthenticationValidator>();
             validatorMock
                 .SetupGet(validator => validator.IdentityProvider)
                 .Returns(IdentityProvider.Google);
             validatorMock
-                .Setup(validator => validator.Validate(It.Is<AuthenticationPermit>(
+                .Setup(validator => validator.ValidateAsync(It.Is<AuthenticationPermit>(
                     p => p.IdToken == permit.IdToken)))
                 .Returns(Task.FromResult(result.Invoke(identity)));
 

@@ -38,7 +38,7 @@ namespace RomgleWebApi.Authentication.AuthenticationHandlers
                 return AuthenticateResult.Fail(failureMessage);
             }
             string accessToken = regexMatch.Value;
-            ClaimsPrincipal? claimsPrincipal = await _accessTokenService.ValidateAccessToken(
+            ClaimsPrincipal? claimsPrincipal = await _accessTokenService.ValidateAccessTokenAsync(
                 accessToken,
                 ignoreExpiration: Options.IgnoreExpiration);
             if (claimsPrincipal == null)
