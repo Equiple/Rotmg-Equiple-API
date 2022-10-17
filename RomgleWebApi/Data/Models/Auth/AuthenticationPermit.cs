@@ -5,5 +5,7 @@
         public IdentityProvider Provider { get; set; }
 
         public string IdToken { get; set; }
+
+        public string? DeviceId { get; set; }
     }
 }

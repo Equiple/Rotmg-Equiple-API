@@ -5,7 +5,7 @@ namespace RomgleWebApi.Services
 {
     public interface IAccessTokenService
     {
-        Task<string> GenerateAccessTokenAsync(string playerId);
+        Task<string> GenerateAccessTokenAsync(string playerId, string deviceId);
 
         Task<RefreshToken> GenerateRefreshTokenAsync();
 

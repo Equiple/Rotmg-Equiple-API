@@ -6,10 +6,9 @@ namespace RomgleWebApi.Utils
 {
     public static class SecurityUtils
     {
-        public static string GenerateBase64SecurityKey()
+        public static string GenerateBase64SecurityKey(int byteCount = 64)
         {
-            const int tokenByteCount = 64;
-            return Convert.ToBase64String(RandomNumberGenerator.GetBytes(tokenByteCount));
+            return Convert.ToBase64String(RandomNumberGenerator.GetBytes(byteCount));
         }
 
         public static SecurityKey GetSecurityKey(string key)

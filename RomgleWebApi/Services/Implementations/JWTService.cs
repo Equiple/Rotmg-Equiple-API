@@ -3,9 +3,11 @@ using Microsoft.IdentityModel.Tokens;
 using RomgleWebApi.Data.Models;
 using RomgleWebApi.Data.Models.Auth;
 using RomgleWebApi.Data.Settings;
+using RomgleWebApi.Extensions;
 using RomgleWebApi.Utils;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text;
 
 namespace RomgleWebApi.Services.Implementations
 {
@@ -22,12 +24,13 @@ namespace RomgleWebApi.Services.Implementations
             _authorizationSettings = authorizationSettings.Value;
         }
 
-        public async Task<string> GenerateAccessTokenAsync(string playerId)
+        public async Task<string> GenerateAccessTokenAsync(string playerId, string deviceId)
         {
-            Player player = await _playersService.GetAsync(playerId);
+            SecurityKey securityKey = await GetSecurityKey(playerId, deviceId);
             ClaimsIdentity subject = new ClaimsIdentity(new[]
             {
-                new Claim(CustomClaimNames.UserId, playerId)
+                new Claim(CustomClaimNames.UserId, playerId),
+                new Claim(CustomClaimNames.DeviceId, deviceId)
             });
             SecurityTokenDescriptor tokenDescriptor = new SecurityTokenDescriptor
             {
@@ -36,7 +39,7 @@ namespace RomgleWebApi.Services.Implementations
                 Audience = _authorizationSettings.Audience,
                 Expires = DateTime.UtcNow.AddMinutes(_authorizationSettings.AccessTokenLifetimeMinutes),
                 SigningCredentials = new SigningCredentials(
-                    SecurityUtils.GetSecurityKey(player.SecretKey),
+                    securityKey,
                     SecurityAlgorithms.HmacSha256)
             };
             JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
@@ -53,8 +56,7 @@ namespace RomgleWebApi.Services.Implementations
             do
             {
                 tokenValue = SecurityUtils.GenerateBase64SecurityKey();
-                Player? player = await _playersService.GetByRefreshTokenAsync(tokenValue);
-                alreadyExists = player != null;
+                alreadyExists = await _playersService.DoesRefreshTokenExistAsync(tokenValue);
             }
             while (alreadyExists);
 
@@ -63,6 +65,7 @@ namespace RomgleWebApi.Services.Implementations
                 Token = tokenValue,
                 Expires = DateTime.UtcNow.AddDays(_authorizationSettings.RefreshTokenLifetimeDays)
             };
+
             return token;
         }
 
@@ -75,11 +78,12 @@ namespace RomgleWebApi.Services.Implementations
             }
             JwtSecurityToken jwt = tokenHandler.ReadJwtToken(accessToken);
             Claim? userIdClaim = jwt.Claims.FirstOrDefault(claim => claim.Type == CustomClaimNames.UserId);
-            if (userIdClaim == null)
+            Claim? deviceIdClaim = jwt.Claims.FirstOrDefault(claim => claim.Type == CustomClaimNames.DeviceId);
+            if (userIdClaim == null || deviceIdClaim == null)
             {
                 return null;
             }
-            Player player = await _playersService.GetAsync(userIdClaim.Value);
+            SecurityKey securityKey = await GetSecurityKey(userIdClaim.Value, deviceIdClaim.Value);
             TokenValidationParameters validationParams = new TokenValidationParameters
             {
                 ValidateIssuer = _authorizationSettings.ValidateIssuer,
@@ -91,7 +95,7 @@ namespace RomgleWebApi.Services.Implementations
                 ValidateLifetime = !ignoreExpiration,
 
                 ValidateIssuerSigningKey = true,
-                IssuerSigningKey = SecurityUtils.GetSecurityKey(player.SecretKey)
+                IssuerSigningKey = securityKey
             };
 
             try
@@ -103,6 +107,20 @@ namespace RomgleWebApi.Services.Implementations
             {
                 return null;
             }
+        }
+
+        private async Task<SecurityKey> GetSecurityKey(string playerId, string deviceId)
+        {
+            Player player = await _playersService.GetAsync(playerId);
+            Device device = player.GetDevice(deviceId);
+            byte[] secretKey = Encoding.GetEncoding(_authorizationSettings.SecretKeyEncoding)
+                .GetBytes(_authorizationSettings.SecretKey);
+            byte[] personalKey = Encoding.GetEncoding(device.PersonalKeyEncoding)
+                .GetBytes(device.PersonalKey);
+            byte[] securityKeyBytes = secretKey.Concat(personalKey).ToArray();
+            string securityKey = Convert.ToBase64String(securityKeyBytes);
+
+            return SecurityUtils.GetSecurityKey(securityKey);
         }
     }
 }

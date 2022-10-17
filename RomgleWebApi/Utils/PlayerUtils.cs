@@ -1,23 +1,32 @@
-﻿using RomgleWebApi.Data.Models;
+﻿using RomgleWebApi.Data;
+using RomgleWebApi.Data.Models;
 using RomgleWebApi.Data.Models.Auth;
 
 namespace RomgleWebApi.Utils
 {
     public static class PlayerUtils
     {
-        public static Player Create(Identity identity, string secretKey)
+        public static NewPlayer Create(
+            Identity identity,
+            string deviceId,
+            string personalKey,
+            string personalKeyEncoding = "ASCII")
         {
-            return new Player
+            Device device = DeviceUtils.Create(
+                deviceId,
+                personalKey,
+                personalKeyEncoding: personalKeyEncoding);
+            Player player = new Player
             {
                 Name = identity.Details.Name,
                 RegistrationDate = DateTime.UtcNow,
                 Identities = new List<Identity> { identity },
-                SecretKey = secretKey,
-                RefreshTokens = new List<RefreshToken>(),
+                Devices = new List<Device> { device },
                 NormalStats = new GameStatistic(),
                 DailyStats = new GameStatistic(),
                 EndedGames = new List<Game>()
             };
+            return new NewPlayer(player, device);
         }
     }
 }

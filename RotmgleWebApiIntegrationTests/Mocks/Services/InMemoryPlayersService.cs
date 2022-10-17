@@ -1,5 +1,9 @@
-﻿using RomgleWebApi.Data.Models;
+﻿using Microsoft.Extensions.Options;
+using RomgleWebApi.Data;
+using RomgleWebApi.Data.Models;
 using RomgleWebApi.Data.Models.Auth;
+using RomgleWebApi.Data.Settings;
+using RomgleWebApi.Extensions;
 using RomgleWebApi.Services;
 using RomgleWebApi.Utils;
 
@@ -8,6 +12,8 @@ namespace RotmgleWebApiTests.Mocks.Services
     internal class InMemoryPlayersService : IPlayersServiceMock, IPlayersService
     {
         private readonly List<Player> _players = new List<Player>();
+
+        public IReadOnlyList<Player> Players => _players;
 
         public void SetInitialPlayers(params Player[] initialPlayers)
         {
@@ -20,54 +26,77 @@ namespace RotmgleWebApiTests.Mocks.Services
             _players.AddRange(initialPlayers);
         }
 
-        public Task<Player> CreateNewAsync(Identity identity)
+        public async Task<Player> GetAsync(string id)
         {
-            Player? existingPlayer = GetByIdentityAsync(identity).Result;
-            if (existingPlayer != null)
+            return _players.First(player => player.Id == id);
+        }
+
+        public async Task<PlayerByIdentity?> GetByIdentityAsync(Identity identity)
+        {
+            Player? player = _players
+                .FirstOrDefault(player => player.Identities
+                    .Any(playerIdentity => playerIdentity.Provider == identity.Provider
+                        && playerIdentity.Id == identity.Id));
+            if (player == null)
+            {
+                return null;
+            }
+
+            return new PlayerByIdentity(
+                player,
+                player.Identities.First(playerIdentity => playerIdentity.Provider == identity.Provider
+                    && playerIdentity.Id == identity.Id));
+        }
+
+        public async Task<NewPlayer> CreateNewAsync(Identity identity)
+        {
+            PlayerByIdentity? existingPlayer = await GetByIdentityAsync(identity);
+            if (existingPlayer.HasValue)
             {
                 throw new Exception($"Player with given identity {identity.Provider}:{identity.Id} already exists");
             }
 
-            Player newPlayer = PlayerUtils.Create(identity, SecurityUtils.GenerateBase64SecurityKey());
-            newPlayer.Id = Guid.NewGuid().ToString();
-            _players.Add(newPlayer);
+            NewPlayer newPlayer = PlayerUtils.Create(
+                identity,
+                DeviceUtils.GenerateDeviceId(),
+                SecurityUtils.GenerateBase64SecurityKey());
+            newPlayer.Player.Id = Guid.NewGuid().ToString();
+            _players.Add(newPlayer.Player);
 
-            return Task.FromResult(newPlayer);
+            return newPlayer;
         }
 
-        public async Task RefreshSecretKeyAsync(string playerId)
+        public async Task<Device> CreateNewDeviceAsync(string playerId)
         {
             Player player = await GetAsync(playerId);
-            player.SecretKey = SecurityUtils.GenerateBase64SecurityKey();
+            Device newDevice = DeviceUtils.Create(
+                DeviceUtils.GenerateDeviceId(),
+                SecurityUtils.GenerateBase64SecurityKey());
+            player.Devices.Add(newDevice);
             await UpdateAsync(player);
+
+            return newDevice;
         }
 
-        public Task<Player> GetAsync(string id)
-        {
-            return Task.FromResult(_players.First(player => player.Id == id));
-        }
-
-        public Task<Player?> GetByIdentityAsync(Identity identity)
-        {
-            return Task.FromResult(_players
-                .FirstOrDefault(player => player.Identities
-                    .Any(playerIdentity =>
-                        playerIdentity.Provider == identity.Provider &&
-                        playerIdentity.Id == identity.Id)));
-        }
-
-        public Task<Player?> GetByRefreshTokenAsync(string refreshToken)
-        {
-            return Task.FromResult(_players
-                .FirstOrDefault(player => player.RefreshTokens
-                    .Any(token => token.Token == refreshToken)));
-        }
-
-        public Task UpdateAsync(Player updatedPlayer)
+        public async Task UpdateAsync(Player updatedPlayer)
         {
             int index = _players.FindIndex(player => player.Id == updatedPlayer.Id);
             _players[index] = updatedPlayer;
-            return Task.CompletedTask;
+        }
+
+        public async Task RefreshPersonalKeyAsync(string playerId, string deviceId)
+        {
+            Player player = await GetAsync(playerId);
+            Device device = player.GetDevice(deviceId);
+            device.PersonalKey = SecurityUtils.GenerateBase64SecurityKey();
+            await UpdateAsync(player);
+        }
+
+        public async Task<bool> DoesRefreshTokenExistAsync(string refreshToken)
+        {
+            return _players.Any(player => player.Devices
+                .Any(device => device.RefreshTokens
+                    .Any(token => token.Token == refreshToken)));
         }
 
         public Task<bool> WasDailyAttemptedAsync(string id)

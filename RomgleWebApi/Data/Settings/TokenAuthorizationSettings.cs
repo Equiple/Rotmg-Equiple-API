@@ -1,7 +1,4 @@
-﻿using Microsoft.IdentityModel.Tokens;
-using System.Text;
-
-namespace RomgleWebApi.Data.Settings
+﻿namespace RomgleWebApi.Data.Settings
 {
     public class TokenAuthorizationSettings
     {
@@ -12,6 +9,10 @@ namespace RomgleWebApi.Data.Settings
         public int AccessTokenLifetimeMinutes { get; set; }
 
         public int RefreshTokenLifetimeDays { get; set; }
+
+        public string SecretKey { get; set; }
+
+        public string SecretKeyEncoding { get; set; }
 
         public bool ValidateIssuer => !string.IsNullOrWhiteSpace(Issuer);
 

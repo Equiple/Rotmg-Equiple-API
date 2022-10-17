@@ -7,7 +7,6 @@ using RomgleWebApi.Data.Models.Auth;
 using RomgleWebApi.Extensions;
 using RomgleWebApi.Services;
 using RomgleWebApi.Services.ServiceCollectionExtensions;
-using RotmgleWebApiTests.Data.Models.Auth;
 using RotmgleWebApiTests.Utils;
 using System.Net;
 using System.Net.Http.Headers;
@@ -22,8 +21,10 @@ namespace RotmgleWebApiTests.IntegrationTests
         private const string IsAuthenticated = "Authenticated";
         private const string AccessTokenIncluded = "Access token included";
         private const string RefreshTokenIncluded = "Access token included";
+        private const string DeviceIdIncluded = "Device id included";
         private const string AccessTokenOmitted = "Access token omitted";
         private const string RefreshTokenOmitted = "Access token omitted";
+        private const string DeviceIdOmitted = "Device id omitted";
 
         protected override void Setup()
         {
@@ -153,6 +154,7 @@ namespace RotmgleWebApiTests.IntegrationTests
             //Act
             (HttpResponseMessage authenResponse, AuthenticationResponse? authenModel) =
                 await Authenticate(client, permit);
+
             HttpRequestMessage securedEndpointRequest = new HttpRequestMessage
             {
                 Method = HttpMethod.Get,
@@ -160,6 +162,7 @@ namespace RotmgleWebApiTests.IntegrationTests
             };
             securedEndpointRequest.Headers.Authorization = AuthenticationHeaderValue.Parse(
                 $"Bearer {authenModel?.AccessToken}");
+
             HttpResponseMessage securedEndpointResponse = await client.SendAsync(securedEndpointRequest);
 
             //Assert
@@ -223,6 +226,59 @@ namespace RotmgleWebApiTests.IntegrationTests
             });
         }
 
+        [Test]
+        public async Task AddIdentityRequest_PlayerGetsTwoAuthenticatedIdentities()
+        {
+            //Arrange
+            string googleIdentityId = "TestGoogleId";
+            (IAuthenticationValidator googleValidator, AuthenticationPermit googlePermit) =
+                ArrangeAuthenticationValidator(
+                    identity => AuthenticationValidatorResult.Valid(identity),
+                    identityProvider: IdentityProvider.Google,
+                    identityId: googleIdentityId);
+
+            string discordIdentityId = "TestDiscordId";
+            (IAuthenticationValidator discordValidator, AuthenticationPermit discordPermit) =
+                ArrangeAuthenticationValidator(
+                    identity => AuthenticationValidatorResult.Valid(identity),
+                    identityProvider: IdentityProvider.Discord,
+                    identityId: discordIdentityId);
+
+            ArrangeServices(services =>
+            {
+                services.AddAuthenticationService(googleValidator, discordValidator);
+            });
+            HttpClient client = GetClient();
+
+            //Act
+            (HttpResponseMessage authenResponse, AuthenticationResponse? authenModel) =
+                await Authenticate(client, googlePermit);
+            (HttpResponseMessage addIdentityResponse, AuthenticationResponse? addIdentityAuthenModel) =
+                await AddIdentity(client, authenModel?.AccessToken, discordPermit);
+
+            //Assert
+            Assert.Multiple(() =>
+            {
+                AssertAuthenticatedResponse(
+                    authenResponse,
+                    authenModel,
+                    suffix: "initial authentication");
+                AssertAuthenticatedResponse(
+                    addIdentityResponse,
+                    addIdentityAuthenModel,
+                    suffix: "add identity authentication");
+                CollectionAssert.AreEquivalent(
+                    new[]
+                    {
+                        (IdentityProvider.Google, googleIdentityId),
+                        (IdentityProvider.Discord, discordIdentityId)
+                    },
+                    PlayersServiceMock.Players.SingleOrDefault()?.Identities
+                        .Select(identity => (identity.Provider, identity.Id)),
+                    "Single player has 2 authenticated identities");
+            });
+        }
+
         #region helpers
 
         private static async Task<(HttpResponseMessage, AuthenticationResponse?)> AuthenticateGuest(
@@ -238,6 +294,24 @@ namespace RotmgleWebApiTests.IntegrationTests
             AuthenticationPermit permit)
         {
             HttpResponseMessage response = await client.PostAsJsonAsync("Authentication/Authenticate", permit);
+            AuthenticationResponse? model = await GetAuthenticationResponseModel(response);
+            return (response, model);
+        }
+
+        private static async Task<(HttpResponseMessage, AuthenticationResponse?)> AddIdentity(
+            HttpClient client,
+            string? accessToken,
+            AuthenticationPermit permit)
+        {
+            HttpRequestMessage addIdentityRequest = new HttpRequestMessage
+            {
+                Method = HttpMethod.Post,
+                RequestUri = new Uri("Authentication/Authenticate", UriKind.Relative),
+                Content = JsonContent.Create(permit)
+            };
+            addIdentityRequest.Headers.Authorization = AuthenticationHeaderValue.Parse(
+                $"Bearer {accessToken}");
+            HttpResponseMessage response = await client.SendAsync(addIdentityRequest);
             AuthenticationResponse? model = await GetAuthenticationResponseModel(response);
             return (response, model);
         }
@@ -258,21 +332,23 @@ namespace RotmgleWebApiTests.IntegrationTests
         }
 
         private static (IAuthenticationValidator, AuthenticationPermit) ArrangeAuthenticationValidator(
-            Func<Identity, AuthenticationValidatorResult> result)
+            Func<Identity, AuthenticationValidatorResult> result,
+            IdentityProvider identityProvider = IdentityProvider.Google,
+            string identityId = "TestIdentityId")
         {
             AuthenticationPermit permit = new AuthenticationPermit
             {
-                Provider = IdentityProvider.Google,
+                Provider = identityProvider,
                 IdToken = "ValidIdToken"
             };
-            Identity identity = permit.CreateIdentity("IdentityId", new IdentityDetails
+            Identity identity = permit.CreateIdentity(identityId, new IdentityDetails
             {
-                Name = "Test"
+                Name = "TestName"
             });
             Mock<IAuthenticationValidator> validatorMock = new Mock<IAuthenticationValidator>();
             validatorMock
                 .SetupGet(validator => validator.IdentityProvider)
-                .Returns(IdentityProvider.Google);
+                .Returns(identityProvider);
             validatorMock
                 .Setup(validator => validator.ValidateAsync(It.Is<AuthenticationPermit>(
                     p => p.IdToken == permit.IdToken)))
@@ -283,59 +359,71 @@ namespace RotmgleWebApiTests.IntegrationTests
 
         private static void AssertAuthenticatedResponse(
             HttpResponseMessage response,
-            AuthenticationResponse? model)
+            AuthenticationResponse? model,
+            string? suffix = null)
         {
+            suffix = !string.IsNullOrWhiteSpace(suffix) ? $" ({suffix})" : "";
             Assert.Multiple(() =>
             {
                 Assert.That(
                     response.StatusCode,
                     Is.EqualTo(HttpStatusCode.OK),
-                    AssertMessages.StatusCode);
+                    $"{AssertMessages.StatusCode} (authentication{suffix})");
                 Assert.That(
                     model,
                     Is.Not.Null,
-                    AuthenticateResponse);
+                    $"{AuthenticateResponse}{suffix}");
                 Assert.That(
                     model?.IsAuthenticated,
                     Is.True,
-                    IsAuthenticated);
+                    $"{IsAuthenticated}{suffix}");
                 Assert.That(
                     !string.IsNullOrWhiteSpace(model?.AccessToken),
                     Is.True,
-                    AccessTokenIncluded);
+                    $"{AccessTokenIncluded}{suffix}");
                 Assert.That(
                     !string.IsNullOrWhiteSpace(model?.RefreshToken),
                     Is.True,
-                    RefreshTokenIncluded);
+                    $"{RefreshTokenIncluded}{suffix}");
+                Assert.That(
+                    !string.IsNullOrWhiteSpace(model?.DeviceId),
+                    Is.True,
+                    $"{DeviceIdIncluded}{suffix}");
             });
         }
 
         private static void AssertNotAuthenticatedResponse(
             HttpResponseMessage response,
-            AuthenticationResponse? model)
+            AuthenticationResponse? model,
+            string? suffix = null)
         {
+            suffix = !string.IsNullOrWhiteSpace(suffix) ? $" ({suffix})" : "";
             Assert.Multiple(() =>
             {
                 Assert.That(
                     response.StatusCode,
                     Is.EqualTo(HttpStatusCode.OK),
-                    AssertMessages.StatusCode);
+                    $"{AssertMessages.StatusCode} (authentication{suffix})");
                 Assert.That(
                     model,
                     Is.Not.Null,
-                    AuthenticateResponse);
+                    $"{AuthenticateResponse}{suffix}");
                 Assert.That(
                     model?.IsAuthenticated,
                     Is.False,
-                    IsAuthenticated);
+                    $"{IsAuthenticated}{suffix}");
                 Assert.That(
                     string.IsNullOrWhiteSpace(model?.AccessToken),
                     Is.True,
-                    AccessTokenOmitted);
+                    $"{AccessTokenOmitted}{suffix}");
                 Assert.That(
                     string.IsNullOrWhiteSpace(model?.RefreshToken),
                     Is.True,
-                    RefreshTokenOmitted);
+                    $"{RefreshTokenOmitted}{suffix}");
+                Assert.That(
+                    string.IsNullOrWhiteSpace(model?.DeviceId),
+                    Is.True,
+                    $"{DeviceIdOmitted}{suffix}");
             });
         }
 

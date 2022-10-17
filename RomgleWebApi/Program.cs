@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
@@ -17,6 +16,7 @@ using RomgleWebApi.Services;
 using RomgleWebApi.Services.Implementations;
 using RomgleWebApi.Services.ServiceCollectionExtensions;
 using RomgleWebApi.Utils;
+using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -43,8 +43,13 @@ builder.Services.AddAuthorization(options =>
         .Combine(basePolicy)
         .AddRequirements(new ExpirationAuthorizationRequirement(JwtRegisteredClaimNames.Exp))
         .Build();
-    options.AddPolicy(PolicyNames.IgnoreExpiration, policyBuilder => policyBuilder
-        .Combine(basePolicy));
+    //options.AddPolicy(
+    //    PolicyNames.Optional,
+    //    policyBuilder => policyBuilder
+    //        .AddRequirements(new ExpirationAuthorizationRequirement(JwtRegisteredClaimNames.Exp)));
+    options.AddPolicy(
+        PolicyNames.IgnoreExpiration,
+        policyBuilder => policyBuilder.Combine(basePolicy));
 });
 builder.Services.AddSingleton<IAuthorizationHandler, ExpirationAuthorizationHandler>();
 

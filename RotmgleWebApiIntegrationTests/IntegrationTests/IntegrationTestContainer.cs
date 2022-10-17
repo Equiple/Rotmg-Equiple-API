@@ -32,7 +32,7 @@ namespace RotmgleWebApiTests.IntegrationTests
             if (_factory != null)
             {
                 throw new InvalidOperationException(
-                    $"{nameof(ArrangeServices)} must be called at most once" +
+                    $"{nameof(ArrangeServices)} must be called at most once " +
                     $"and before {nameof(GetClient)}");
             }
 

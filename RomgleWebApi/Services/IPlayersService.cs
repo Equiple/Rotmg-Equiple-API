@@ -1,4 +1,5 @@
-﻿using RomgleWebApi.Data.Models;
+﻿using RomgleWebApi.Data;
+using RomgleWebApi.Data.Models;
 using RomgleWebApi.Data.Models.Auth;
 
 namespace RomgleWebApi.Services
@@ -7,15 +8,17 @@ namespace RomgleWebApi.Services
     {
         Task<Player> GetAsync(string playerId);
 
-        Task<Player?> GetByIdentityAsync(Identity identity);
+        Task<PlayerByIdentity?> GetByIdentityAsync(Identity identity);
 
-        Task<Player?> GetByRefreshTokenAsync(string refreshToken);
+        Task<NewPlayer> CreateNewAsync(Identity identity);
 
-        Task<Player> CreateNewAsync(Identity identity);
+        Task<Device> CreateNewDeviceAsync(string playerId);
 
         Task UpdateAsync(Player updatedPlayer);
 
-        Task RefreshSecretKeyAsync(string playerId);
+        Task RefreshPersonalKeyAsync(string playerId, string deviceId);
+
+        Task<bool> DoesRefreshTokenExistAsync(string refreshToken);
 
         Task<bool> WasDailyAttemptedAsync(string playerId);
 

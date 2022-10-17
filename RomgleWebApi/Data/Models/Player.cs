@@ -12,9 +12,7 @@ namespace RomgleWebApi.Data.Models
 
         public List<Identity> Identities { get; set; }
 
-        public string SecretKey { get; set; }
-
-        public List<RefreshToken> RefreshTokens { get; set; }
+        public List<Device> Devices { get; set; }
 
         public GameStatistic NormalStats { get; set; }
 

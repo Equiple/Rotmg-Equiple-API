@@ -20,32 +20,48 @@ namespace RomgleWebApi.Controllers
         }
 
         [HttpPost("AuthenticateGuest")]
-        public async Task<IAuthenticationResponse> AuthenticateGuest()
+        public async Task<AuthenticationResponse> AuthenticateGuest()
         {
             AuthenticationResult result = await _authenticationService.AuthenticateGuestAsync();
             return result;
         }
 
+        [Authorize]
+        [AllowAnonymous]
         [HttpPost("Authenticate")]
-        public async Task<IAuthenticationResponse> Authenticate(AuthenticationPermit permit)
+        public async Task<AuthenticationResponse> Authenticate(
+            AuthenticationPermit permit,
+            [UserId] string? playerId,
+            [DeviceId] string? deviceId)
         {
-            AuthenticationResult result = await _authenticationService.AuthenticateAsync(permit);
+            AuthenticationResult result = await _authenticationService.AuthenticateAsync(
+                permit,
+                playerId,
+                deviceId);
             return result;
         }
 
         [Authorize(Policy = PolicyNames.IgnoreExpiration)]
         [HttpPost("RefreshAccessToken")]
-        public async Task<IAuthenticationResponse> RefreshAccessToken([UserId] string playerId, string refreshToken)
+        public async Task<AuthenticationResponse> RefreshAccessToken(
+            [UserId] string playerId,
+            [DeviceId] string deviceId,
+            string refreshToken)
         {
-            AuthenticationResult result = await _authenticationService.RefreshAccessTokenAsync(playerId, refreshToken);
+            AuthenticationResult result = await _authenticationService.RefreshAccessTokenAsync(
+                playerId,
+                deviceId,
+                refreshToken);
             return result;
         }
 
         [Authorize]
         [HttpPost("Logout")]
-        public async Task<IActionResult> Logout([UserId] string playerId)
+        public async Task<IActionResult> Logout(
+            [UserId] string playerId,
+            [DeviceId] string deviceId)
         {
-            await _authenticationService.LogoutAsync(playerId);
+            await _authenticationService.LogoutAsync(playerId, deviceId);
             return Ok();
         }
     }

@@ -2,24 +2,29 @@
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 using RomgleWebApi.DAL;
+using RomgleWebApi.Data;
 using RomgleWebApi.Data.Models;
 using RomgleWebApi.Data.Models.Auth;
 using RomgleWebApi.Data.Settings;
 using RomgleWebApi.Extensions;
 using RomgleWebApi.Utils;
+using System.Text;
 
 namespace RomgleWebApi.Services.Implementations
 {
     public class PlayersService : IPlayersService
     {
+        private readonly TokenAuthorizationSettings _tokenAuthorizationSettings;
         private readonly IMongoCollection<Player> _playersCollection;
         private readonly IItemsService _itemsService;
 
         public PlayersService(
             IOptions<RotmgleDatabaseSettings> rotmgleDatabaseSettings,
+            IOptions<TokenAuthorizationSettings> tokenAuthorizationSettings,
             IDataCollectionProvider dataCollectionProvider,
             IItemsService itemsService)
         {
+            _tokenAuthorizationSettings = tokenAuthorizationSettings.Value;
             _playersCollection = dataCollectionProvider
                 .GetDataCollection<Player>(rotmgleDatabaseSettings.Value.PlayersCollectionName)
                 .AsMongo();
@@ -32,39 +37,52 @@ namespace RomgleWebApi.Services.Implementations
             return player;
         }
 
-        public async Task<Player?> GetByIdentityAsync(Identity identity)
+        public async Task<PlayerByIdentity?> GetByIdentityAsync(Identity identity)
         {
             Player? player = await _playersCollection
                 .Find(player => player.Identities
-                    .Any(playerIdentity =>
-                        playerIdentity.Provider == identity.Provider &&
-                        playerIdentity.Id == player.Id))
+                    .Where(playerIdentity => playerIdentity.Provider == identity.Provider
+                        && playerIdentity.Id == player.Id)
+                    .Any())
                 .FirstOrDefaultAsync();
-            return player;
+            if (player == null)
+            {
+                return null;
+            }
+            PlayerByIdentity result = new PlayerByIdentity(
+                player,
+                player.Identities
+                    .First(playerIdentity => playerIdentity.Provider == identity.Provider
+                        && playerIdentity.Id == player.Id));
+            return result;
         }
 
-        public async Task<Player?> GetByRefreshTokenAsync(string refreshToken)
+        public async Task<NewPlayer> CreateNewAsync(Identity identity)
         {
-            Player? player = await _playersCollection
-                .Find(player => player.RefreshTokens
-                    .Any(token => token.Token == refreshToken))
-                .FirstOrDefaultAsync();
-            return player;
-        }
-
-        public async Task<Player> CreateNewAsync(Identity identity)
-        {
-            Player? existingPlayer = await GetByIdentityAsync(identity);
-            if (existingPlayer != null)
+            PlayerByIdentity? existingPlayer = await GetByIdentityAsync(identity);
+            if (existingPlayer.HasValue)
             {
                 throw new Exception($"Player with given identity {identity.Provider}:{identity.Id} already exists");
             }
 
-            string secretKey = await GenerateUniqueSecretKey();
-            Player newPlayer = PlayerUtils.Create(identity, secretKey);
-            await _playersCollection.InsertOneAsync(newPlayer);
+            string deviceId = await GenerateUniqueDeviceId();
+            string personalKey = await GenerateUniquePersonalKey();
+            NewPlayer newPlayer = PlayerUtils.Create(identity, deviceId, personalKey);
+            await _playersCollection.InsertOneAsync(newPlayer.Player);
 
             return newPlayer;
+        }
+
+        public async Task<Device> CreateNewDeviceAsync(string playerId)
+        {
+            Player player = await GetAsync(playerId);
+            string deviceId = await GenerateUniqueDeviceId();
+            string personalKey = await GenerateUniquePersonalKey();
+            Device newDevice = DeviceUtils.Create(deviceId, personalKey);
+            player.Devices.Add(newDevice);
+            await UpdateAsync(player);
+
+            return newDevice;
         }
 
         public async Task UpdateAsync(Player updatedPlayer)
@@ -72,20 +90,34 @@ namespace RomgleWebApi.Services.Implementations
             await _playersCollection.ReplaceOneAsync(player => player.Id == updatedPlayer.Id, updatedPlayer);
         }
 
-        public async Task RefreshSecretKeyAsync(string playerId)
+        public async Task RefreshPersonalKeyAsync(string playerId, string deviceId)
         {
             Player player = await GetAsync(playerId);
-            string key = await GenerateUniqueSecretKey();
-            player.SecretKey = key;
+            Device device = player.GetDevice(deviceId);
+            string key = await GenerateUniquePersonalKey();
+            device.PersonalKey = key;
             await UpdateAsync(player);
+        }
+
+        public async Task<bool> DoesRefreshTokenExistAsync(string refreshToken)
+        {
+            Player? existingPlayer = await _playersCollection
+                .Find(player => player.Devices
+                    .Where(device => device.RefreshTokens
+                        .Where(token => token.Token == refreshToken)
+                        .Any())
+                    .Any())
+                .FirstOrDefaultAsync();
+            return existingPlayer != null;
         }
 
         public async Task<bool> WasDailyAttemptedAsync(string id)
         {
             Player player = await GetAsync(id);
-            if (player.EndedGames.Any(game =>
-                game.Mode == Gamemode.Daily &&
-                game.StartDate.Date == DateTime.UtcNow.Date))
+            if (player.EndedGames
+                    .Where(game => game.Mode == Gamemode.Daily
+                        && game.StartDate.Date == DateTime.UtcNow.Date)
+                    .Any())
             {
                 return true;
             }
@@ -151,9 +183,10 @@ namespace RomgleWebApi.Services.Implementations
             List<Player> leaderboard = await _playersCollection
                 .AsQueryable()
                 .Where(player => player.EndedGames
-                    .Any(game => game.Mode == Gamemode.Normal
+                    .Where(game => game.Mode == Gamemode.Normal
                         && game.IsEnded
-                        && game.GameResult == GameResult.Won))
+                        && game.GameResult == GameResult.Won)
+                    .Any())
                 .OrderByDescending(player => player.NormalStats.CurrentStreak)
                 .ThenByDescending(player => player.NormalStats.RunsWon)
                 .ToListAsync();
@@ -190,15 +223,45 @@ namespace RomgleWebApi.Services.Implementations
 
         #region private methods
 
-        private async Task<string> GenerateUniqueSecretKey()
+        private async Task<string> GenerateUniqueDeviceId()
         {
+            string id;
+            bool alreadyExists;
+            do
+            {
+                id = DeviceUtils.GenerateDeviceId();
+                Player? existingPlayer = await _playersCollection
+                    .Find(player => player.Devices
+                        .Where(device => device.Id == id)
+                        .Any())
+                    .FirstOrDefaultAsync();
+                alreadyExists = existingPlayer != null;
+            }
+            while (alreadyExists);
+            return id;
+        }
+
+        private async Task<string> GenerateUniquePersonalKey()
+        {
+            const int minSecurityKeyByteCount = 64;
+            const int minPersonalKeyByteCount = 32;
+            int secretKeyByteCount = Encoding.GetEncoding(_tokenAuthorizationSettings.SecretKeyEncoding)
+                .GetByteCount(_tokenAuthorizationSettings.SecretKey);
+            int personalKeyByteCount = Math.Max(
+                minSecurityKeyByteCount - secretKeyByteCount,
+                minPersonalKeyByteCount);
+
             string key;
             bool alreadyExists;
             do
             {
-                key = SecurityUtils.GenerateBase64SecurityKey();
-                long existingCount = await _playersCollection.CountDocumentsAsync(player => player.SecretKey == key);
-                alreadyExists = existingCount > 0;
+                key = SecurityUtils.GenerateBase64SecurityKey(personalKeyByteCount);
+                Player? existingPlayer = await _playersCollection
+                    .Find(player => player.Devices
+                        .Where(device => device.PersonalKey == key)
+                        .Any())
+                    .FirstOrDefaultAsync();
+                alreadyExists = existingPlayer != null;
             }
             while (alreadyExists);
             return key;
@@ -218,7 +281,8 @@ namespace RomgleWebApi.Services.Implementations
                         Name = StringUtils.GenerateRandomNameLookingString()
                     }
                 };
-                Player player = await CreateNewAsync(identity);
+                NewPlayer newPlayer = await CreateNewAsync(identity);
+                Player player = newPlayer.Player;
                 player.Randomize();
                 await UpdateAsync(player);
                 players.Add(player);

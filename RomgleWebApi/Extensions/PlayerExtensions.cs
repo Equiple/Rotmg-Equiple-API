@@ -8,6 +8,12 @@ namespace RomgleWebApi.Extensions
 {
     public static class PlayerExtensions
     {
+        public static Device GetDevice(this Player player, string deviceId)
+        {
+            Device device = player.Devices.First(device => device.Id == deviceId);
+            return device;
+        }
+
         public static GameStatistic GetStats(this Player player, Gamemode mode)
         {
             if (mode == Gamemode.Normal)
@@ -51,14 +57,6 @@ namespace RomgleWebApi.Extensions
                 player,
                 stats => stats.ToDetailed(getters: getters),
                 dailyGuesses);
-        }
-
-        public static void RevokeRefreshTokens(this Player player)
-        {
-            foreach (RefreshToken token in player.RefreshTokens)
-            {
-                token.Revoke();
-            }
         }
 
         public static void Randomize(this Player player)

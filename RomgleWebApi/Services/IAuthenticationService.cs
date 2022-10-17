@@ -7,10 +7,16 @@ namespace RomgleWebApi.Services
     {
         Task<AuthenticationResult> AuthenticateGuestAsync();
 
-        Task<AuthenticationResult> AuthenticateAsync(AuthenticationPermit permit, string? playerId = null);
+        Task<AuthenticationResult> AuthenticateAsync(
+            AuthenticationPermit permit,
+            string? playerId,
+            string? deviceId);
 
-        Task<AuthenticationResult> RefreshAccessTokenAsync(string playerId, string refreshToken);
+        Task<AuthenticationResult> RefreshAccessTokenAsync(
+            string playerId,
+            string deviceId,
+            string refreshToken);
 
-        Task LogoutAsync(string playerId);
+        Task LogoutAsync(string playerId, string deviceId);
     }
 }
