@@ -43,10 +43,6 @@ builder.Services.AddAuthorization(options =>
         .Combine(basePolicy)
         .AddRequirements(new ExpirationAuthorizationRequirement(JwtRegisteredClaimNames.Exp))
         .Build();
-    //options.AddPolicy(
-    //    PolicyNames.Optional,
-    //    policyBuilder => policyBuilder
-    //        .AddRequirements(new ExpirationAuthorizationRequirement(JwtRegisteredClaimNames.Exp)));
     options.AddPolicy(
         PolicyNames.IgnoreExpiration,
         policyBuilder => policyBuilder.Combine(basePolicy));
