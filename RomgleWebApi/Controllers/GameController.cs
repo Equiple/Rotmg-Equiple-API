@@ -54,13 +54,13 @@ namespace RomgleWebApi.Controllers
         }
 
         [HttpGet("GetCurrentStreak")]
-        public async Task<int> GetCurrentStreak(string playerId, Gamemode mode)
+        public async Task<int> GetCurrentStreak([UserId] string playerId, Gamemode mode)
         {
             return await _playersService.GetCurrentStreakAsync(playerId, mode);
         }
 
         [HttpGet("GetBestStreak")]
-        public async Task<int> GetBestStreak(string playerId, Gamemode mode)
+        public async Task<int> GetBestStreak([UserId] string playerId, Gamemode mode)
         {
             return await _playersService.GetBestStreakAsync(playerId, mode);
         }
@@ -114,7 +114,7 @@ namespace RomgleWebApi.Controllers
         }
 
         [HttpGet("GetTargetItem")]
-        public async Task<Item> GetTargetItem(string playerId)
+        public async Task<Item> GetTargetItem([UserId] string playerId)
         {
             return await _gameService.GetTargetItemAsync(playerId);
         }
@@ -132,7 +132,7 @@ namespace RomgleWebApi.Controllers
         }
 
         [HttpGet("GetPlayerLeaderboardPlacement")]
-        public async Task<int> GetPlayerLeaderboardPlacement(string playerId, Gamemode mode)
+        public async Task<int> GetPlayerLeaderboardPlacement([UserId] string playerId, Gamemode mode)
         {
             return await _playersService.GetPlayerLeaderboardPlacementAsync(playerId, mode);
         }
