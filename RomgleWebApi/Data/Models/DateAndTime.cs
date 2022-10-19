@@ -2,7 +2,7 @@
 
 namespace RomgleWebApi.Data.Models
 {
-    public struct DateAndTime
+    public class DateAndTime
     {
         public DateTime Date { get; set; }
 
@@ -28,32 +28,32 @@ namespace RomgleWebApi.Data.Models
 
         #region DateAndTime operators
 
-        public static bool operator ==(DateAndTime d1, DateAndTime d2)
+        public static bool operator ==(DateAndTime? d1, DateAndTime? d2)
         {
             return (DateTime)d1 == (DateTime)d2;
         }
 
-        public static bool operator !=(DateAndTime d1, DateAndTime d2)
+        public static bool operator !=(DateAndTime? d1, DateAndTime? d2)
         {
             return (DateTime)d1 != (DateTime)d2;
         }
 
-        public static bool operator <(DateAndTime d1, DateAndTime d2)
+        public static bool operator <(DateAndTime? d1, DateAndTime? d2)
         {
             return (DateTime)d1 < (DateTime)d2;
         }
 
-        public static bool operator >(DateAndTime d1, DateAndTime d2)
+        public static bool operator >(DateAndTime? d1, DateAndTime? d2)
         {
             return (DateTime)d1 > (DateTime)d2;
         }
 
-        public static bool operator <=(DateAndTime d1, DateAndTime d2)
+        public static bool operator <=(DateAndTime? d1, DateAndTime? d2)
         {
             return (DateTime)d1 <= (DateTime)d2;
         }
 
-        public static bool operator >=(DateAndTime d1, DateAndTime d2)
+        public static bool operator >=(DateAndTime? d1, DateAndTime? d2)
         {
             return (DateTime)d1 >= (DateTime)d2;
         }
@@ -64,32 +64,32 @@ namespace RomgleWebApi.Data.Models
 
         #region left
 
-        public static bool operator ==(DateAndTime d1, DateTime d2)
+        public static bool operator ==(DateAndTime? d1, DateTime d2)
         {
             return (DateTime)d1 == d2;
         }
 
-        public static bool operator !=(DateAndTime d1, DateTime d2)
+        public static bool operator !=(DateAndTime? d1, DateTime d2)
         {
             return (DateTime)d1 != d2;
         }
 
-        public static bool operator <(DateAndTime d1, DateTime d2)
+        public static bool operator <(DateAndTime? d1, DateTime d2)
         {
             return (DateTime)d1 < d2;
         }
 
-        public static bool operator >(DateAndTime d1, DateTime d2)
+        public static bool operator >(DateAndTime? d1, DateTime d2)
         {
             return (DateTime)d1 > d2;
         }
 
-        public static bool operator <=(DateAndTime d1, DateTime d2)
+        public static bool operator <=(DateAndTime? d1, DateTime d2)
         {
             return (DateTime)d1 <= d2;
         }
 
-        public static bool operator >=(DateAndTime d1, DateTime d2)
+        public static bool operator >=(DateAndTime? d1, DateTime d2)
         {
             return (DateTime)d1 >= d2;
         }
@@ -98,32 +98,32 @@ namespace RomgleWebApi.Data.Models
 
         #region right
 
-        public static bool operator ==(DateTime d1, DateAndTime d2)
+        public static bool operator ==(DateTime d1, DateAndTime? d2)
         {
             return d1 == (DateTime)d2;
         }
 
-        public static bool operator !=(DateTime d1, DateAndTime d2)
+        public static bool operator !=(DateTime d1, DateAndTime? d2)
         {
             return d1 != (DateTime)d2;
         }
 
-        public static bool operator <(DateTime d1, DateAndTime d2)
+        public static bool operator <(DateTime d1, DateAndTime? d2)
         {
             return d1 < (DateTime)d2;
         }
 
-        public static bool operator >(DateTime d1, DateAndTime d2)
+        public static bool operator >(DateTime d1, DateAndTime? d2)
         {
             return d1 > (DateTime)d2;
         }
 
-        public static bool operator <=(DateTime d1, DateAndTime d2)
+        public static bool operator <=(DateTime d1, DateAndTime? d2)
         {
             return d1 <= (DateTime)d2;
         }
 
-        public static bool operator >=(DateTime d1, DateAndTime d2)
+        public static bool operator >=(DateTime d1, DateAndTime? d2)
         {
             return d1 >= (DateTime)d2;
         }
@@ -134,8 +134,12 @@ namespace RomgleWebApi.Data.Models
 
         #region implicit operators
 
-        public static implicit operator DateTime(DateAndTime dateAndTime)
+        public static implicit operator DateTime(DateAndTime? dateAndTime)
         {
+            if (dateAndTime is null)
+            {
+                return default;
+            }
             return dateAndTime.Date.Date.Add(dateAndTime.Time);
         }
 

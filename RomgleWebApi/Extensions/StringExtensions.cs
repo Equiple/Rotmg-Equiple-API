@@ -26,7 +26,7 @@ namespace RomgleWebApi.Extensions
         /// </summary>
         /// <param name="givenString"></param>
         /// <returns>
-        /// double value if parsing was successful, null if not.
+        /// A double value if parsing was successful, null if not.
         /// </returns>
         public static double? ParseDouble(this string givenString)
         {
@@ -43,7 +43,7 @@ namespace RomgleWebApi.Extensions
         /// </summary>
         /// <param name="givenString"></param>
         /// <returns>
-        /// int value if parsing was successful, null if not.
+        /// An integer value if parsing was successful, null if not.
         /// </returns>
         public static int? ParseInt(this string givenString)
         {
@@ -73,40 +73,11 @@ namespace RomgleWebApi.Extensions
         }
 
         /// <summary>
-        /// Removes unicode html tags, such as '&nbsp;' and '&apos;'.
-        /// </summary>
-        /// <param name="givenString">Initial String.</param>
-        /// <param name="replaceWith">String to replace substrings with.</param>
-        /// <returns>
-        /// Strings with found values replaced.
-        /// </returns>
-        public static string ReplaceGarbage(this string givenString, string replaceWith)
-        {
-            givenString.Replace("&nbsp;", replaceWith);
-            givenString.Replace("&apos;", replaceWith);
-            return givenString;
-        }
-
-        /// <summary>
-        /// Removes unicode html tags, such as '&nbsp;' and '&apos;' with their normal text counterparts.
-        /// </summary>
-        /// <param name="givenString">Initial String.</param>
-        /// <returns>
-        /// Strings with found values replaced.
-        /// </returns>
-        public static string ReplaceGarbage(this string givenString)
-        {
-            givenString.Replace("&nbsp;", " ");
-            givenString.Replace("&apos;", "\'");
-            return givenString;
-        }
-
-        /// <summary>
         /// Replaces unicode and html tags with their normal text counterparts or removes them altogether.
         /// </summary>
         /// <param name="givenString"></param>
         /// <returns>
-        /// String with found values replaced.
+        /// A string with found values replaced.
         /// </returns>
         public static string ScrubHtml(this string givenString)
         {

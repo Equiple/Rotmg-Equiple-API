@@ -42,7 +42,7 @@ namespace RomgleWebApi.Services.Implementations
             Player? player = await _playersCollection
                 .Find(player => player.Identities
                     .Where(playerIdentity => playerIdentity.Provider == identity.Provider
-                        && playerIdentity.Id == player.Id)
+                        && playerIdentity.Id == identity.Id)
                     .Any())
                 .FirstOrDefaultAsync();
             if (player == null)
@@ -53,7 +53,7 @@ namespace RomgleWebApi.Services.Implementations
                 player,
                 player.Identities
                     .First(playerIdentity => playerIdentity.Provider == identity.Provider
-                        && playerIdentity.Id == player.Id));
+                        && playerIdentity.Id == identity.Id));
             return result;
         }
 

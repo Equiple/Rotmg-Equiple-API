@@ -11,7 +11,7 @@ namespace RomgleWebApi.Extensions
 
         public static bool IsRevoked(this RefreshToken refreshToken)
         {
-            return refreshToken.Revoked.HasValue;
+            return refreshToken.Revoked != null;
         }
 
         public static bool IsActive(this RefreshToken refreshToken)
