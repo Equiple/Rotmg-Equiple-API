@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
 using RomgleWebApi.Authentication.AuthenticationHandlers;
 using RomgleWebApi.Authentication.AuthenticationValidators;
@@ -11,6 +10,7 @@ using RomgleWebApi.Authorization.Requirements;
 using RomgleWebApi.DAL;
 using RomgleWebApi.Data.Models.BsonClassMaps;
 using RomgleWebApi.Data.Settings;
+using RomgleWebApi.Json.Converters;
 using RomgleWebApi.ModelBinding.ValueProviders.Factories;
 using RomgleWebApi.Services;
 using RomgleWebApi.Services.Implementations;
@@ -55,9 +55,10 @@ builder.Services.AddControllers(options =>
 {
     options.ValueProviderFactories.Add(new UserValueProviderFactory());
     options.ValueProviderFactories.Add(new CookieValueProviderFactory());
-}).AddJsonOptions(options => 
+}).AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    options.JsonSerializerOptions.Converters.Add(new JsonStringTimeSpanConverter());
 });
 
 StaticRegistrationHelper.Scope(() =>
@@ -86,7 +87,14 @@ builder.Services.AddSingleton<IPlayersService, PlayersService>();
 builder.Services.AddSingleton<IGameService, GameService>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddSwaggerGen(); 
+builder.Services.AddSwaggerGen(options =>
+{
+    options.MapType<TimeSpan>(() => new OpenApiSchema
+    {
+        Type = "string",
+        Format = "time"
+    });
+}); 
 
 var app = builder.Build();
 
