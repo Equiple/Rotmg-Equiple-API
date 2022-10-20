@@ -15,13 +15,16 @@ namespace RomgleWebApi.Services.Implementations
     {
         private readonly IPlayersService _playersService;
         private readonly TokenAuthorizationSettings _authorizationSettings;
+        private readonly ILogger<JWTService> _logger;
 
         public JWTService(
             IPlayersService playersService,
-            IOptions<TokenAuthorizationSettings> authorizationSettings)
+            IOptions<TokenAuthorizationSettings> authorizationSettings,
+            ILogger<JWTService> logger)
         {
             _playersService = playersService;
             _authorizationSettings = authorizationSettings.Value;
+            _logger = logger;
         }
 
         public async Task<string> GenerateAccessTokenAsync(string playerId, string deviceId)
@@ -83,7 +86,18 @@ namespace RomgleWebApi.Services.Implementations
             {
                 return null;
             }
-            SecurityKey securityKey = await GetSecurityKey(userIdClaim.Value, deviceIdClaim.Value);
+
+            SecurityKey securityKey;
+            try
+            {
+                securityKey = await GetSecurityKey(userIdClaim.Value, deviceIdClaim.Value);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, $"Error in {GetType().Name} during access token validation: {nameof(SecurityKey)} creation");
+                return null;
+            }
+
             TokenValidationParameters validationParams = new TokenValidationParameters
             {
                 ValidateIssuer = _authorizationSettings.ValidateIssuer,

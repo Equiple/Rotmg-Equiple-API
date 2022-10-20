@@ -27,16 +27,22 @@ namespace RomgleWebApi.Services.Implementations
 
         public async Task<AuthenticationResult> AuthenticateGuestAsync()
         {
-            const string guestIdentityId = "guest";
             Identity identity = new Identity
             {
                 Provider = IdentityProvider.Self,
-                Id = guestIdentityId,
                 Details = new IdentityDetails
                 {
                     Name = "Itani"
                 }
             };
+            bool idExists;
+            do
+            {
+                identity.Id = $"guest_{Guid.NewGuid()}";
+                PlayerByIdentity? existingPlayer = await _playersService.GetByIdentityAsync(identity);
+                idExists = existingPlayer.HasValue;
+            }
+            while (idExists);
             NewPlayer newPlayer = await _playersService.CreateNewAsync(identity);
 
             return await Success(newPlayer.Player, newPlayer.Device.Id);
