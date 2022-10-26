@@ -1,5 +1,7 @@
-﻿using RomgleWebApi.Data.Models;
+﻿using RomgleWebApi.ColorConvertion;
+using RomgleWebApi.Data.Models;
 using RomgleWebApi.Extensions;
+using RomgleWebApi.Utils;
 using System.Drawing;
 
 namespace RomgleWebApi.Services.Implementations
@@ -221,8 +223,8 @@ namespace RomgleWebApi.Services.Implementations
                 NumberOfShots = Hint.Correct,
                 XpBonus = GetHint(item => item.XpBonus),
                 Feedpower = GetHint(item => item.Feedpower),
-                DominantColor = GetHeatHint(item => item.DominantColor),
-                ColorClass = GetHeatHint(item => item.DominantColor)
+                DominantColor = GetColorHint(item => item.DominantColor),
+                ColorClass = GetColorHint(item => item.DominantColor)
             };
             return hints;
 
@@ -248,23 +250,20 @@ namespace RomgleWebApi.Services.Implementations
                 return guessProperty.Equals(targetProperty) ? Hint.Correct : Hint.Wrong;
             }
 
-            string GetHeatHint(Func<Item, string> hintProperty)
+            string GetOldColorHint(Func<Item, string> hintProperty)
             {
                 //Max distance is mean of all item colour distances
-                const double maxDistance = 117.0; //255 * Math.Sqrt(3);
+                const double maxDistance = 117.0;
                 string guessProperty = hintProperty(guess);
                 string targetProperty = hintProperty(target);
-
                 Color targetColor = Color.FromName(targetProperty);
                 Color guessColor = Color.FromName(guessProperty);
-                double distance = GetColorDistance(targetColor, guessColor);
-
-                Color greenColor = Color.FromArgb(alpha: 255, red: 51, green: 153, blue: 0);
-                Color redColor = Color.FromArgb(alpha: 255, red: 204, green: 0, blue: 0);
-                //double distanceTwo = GetColorDistance(greenColor, redColor);
-
-                double distancePercent = MapValue(x: distance, xLeft: 0, xRight: maxDistance*2, resLeft: 0, resRight: 1);
-                if(distancePercent > 1)
+                Color greenColor = ColorUtils.defaultGreen;
+                Color redColor = ColorUtils.defaultRed;
+                double distance = targetColor.GetRGBDistanceFrom(guessColor);
+                double distancePercent = CommonUtils
+                    .MapValue(x: distance, xLeft: 0, xRight: maxDistance*2, resLeft: 0, resRight: 1);
+                if (distancePercent > 1)
                 {
                     distancePercent = 1;
                 }
@@ -273,13 +272,41 @@ namespace RomgleWebApi.Services.Implementations
                     (redColor.G - greenColor.G) * distancePercent,
                     (redColor.B - greenColor.B) * distancePercent
                 };
-
-                Color result = Color.FromArgb(alpha: 255,
+                Color result = Color.FromArgb(
+                    alpha: 255,
                     red: (int)(greenColor.R + vector[0]),
                     green: (int)(greenColor.G + vector[1]),
-                    blue: (int)(greenColor.B + vector[2])
-                );
+                    blue: (int)(greenColor.B + vector[2]));
+                string colorHex = ColorTranslator.ToHtml(result);
+                return colorHex;
+            }
 
+            string GetColorHint(Func<Item, string> hintProperty)
+            {
+                string guessProperty = hintProperty(guess);
+                string targetProperty = hintProperty(target);
+                Color targetColor = Color.FromName(targetProperty);
+                Color guessColor = Color.FromName(guessProperty);
+                double distance = targetColor.GetDistanceFrom(guessColor);
+                double defaultDistance = ColorUtils.GetDefaultGreenRedCIELabDistance();
+                double distancePercent = CommonUtils
+                    .MapValue(x: distance, xLeft: 0, xRight: defaultDistance, resLeft: 0, resRight: 1);
+                if (distancePercent > 1)
+                {
+                    distancePercent = 1;
+                }
+                Color greenColor = ColorUtils.defaultGreen;
+                Color redColor = ColorUtils.defaultRed;
+                double[] vector = new double[] {
+                    (redColor.R - greenColor.R) * distancePercent,
+                    (redColor.G - greenColor.G) * distancePercent,
+                    (redColor.B - greenColor.B) * distancePercent
+                };
+                Color result = Color.FromArgb(
+                    alpha: 255,
+                    red: (int)(greenColor.R + vector[0]),
+                    green: (int)(greenColor.G + vector[1]),
+                    blue: (int)(greenColor.B + vector[2]));
                 string colorHex = ColorTranslator.ToHtml(result);
                 return colorHex;
             }
@@ -291,10 +318,8 @@ namespace RomgleWebApi.Services.Implementations
                 {
                     foreach(Item anotherItem in items)
                     {
-                        double distance = GetColorDistance(
-                            Color.FromName(item.DominantColor!),
-                            Color.FromName(anotherItem.DominantColor!)
-                        );
+                        double distance = Color.FromName(item.DominantColor!)
+                            .GetRGBDistanceFrom(Color.FromName(anotherItem.DominantColor!));
                         if(distance != 0)
                         {
                             distances.Add(distance);
@@ -304,25 +329,6 @@ namespace RomgleWebApi.Services.Implementations
                 distances.Sort();
                 double result = distances[distances.Count / 2];
                 return result;
-            }
-
-            double GetColorDistance(Color color, Color secondColor) 
-            {
-                double red = Math.Pow(Convert.ToDouble(color.R) - secondColor.R, 2.0);
-                double green = Math.Pow(Convert.ToDouble(color.G) - secondColor.G, 2.0);
-                double blue = Math.Pow(Convert.ToDouble(color.B) - secondColor.B, 2.0);
-
-                double distance = Math.Sqrt(blue + green + red);
-                return distance;
-            }
-
-            double MapValue(double x, double xLeft, double xRight, double resLeft, double resRight)
-            {
-                if (xLeft == xRight)
-                {
-                    return resLeft;
-                }
-                return (x - xLeft) / (xRight - xLeft) * (resRight - resLeft) + resLeft;
             }
         }
 
