@@ -6,11 +6,12 @@
 
         public string DatabaseName { get; set; } = null!;
 
-        public string ItemsCollectionName { get; set; } = null!;
+        public string ItemCollectionName { get; set; } = null!;
 
-        public string PlayersCollectionName { get; set; } = null!;
+        public string PlayerCollectionName { get; set; } = null!;
 
-        public string DailiesCollectionName { get; set; } = null!;
+        public string DailyCollectionName { get; set; } = null!;
 
+        public string RefreshTokenCollectionName { get; set; } = null!;
     }
 }

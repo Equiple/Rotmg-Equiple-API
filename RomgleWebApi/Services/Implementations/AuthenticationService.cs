@@ -1,5 +1,8 @@
 ﻿using Microsoft.Extensions.Options;
+using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 using RomgleWebApi.Authentication.AuthenticationValidators;
+using RomgleWebApi.DAL;
 using RomgleWebApi.Data;
 using RomgleWebApi.Data.Auth;
 using RomgleWebApi.Data.Models;
@@ -11,16 +14,16 @@ namespace RomgleWebApi.Services.Implementations
 {
     public class AuthenticationService : IAuthenticationService
     {
-        private readonly IPlayersService _playersService;
+        private readonly IPlayerService _playerService;
         private readonly IAccessTokenService _accessTokenService;
         private readonly AuthenticationServiceSettings _settings;
 
         public AuthenticationService(
-            IPlayersService playersService,
+            IPlayerService playersService,
             IAccessTokenService accessTokenService,
             IOptions<AuthenticationServiceSettings> settings)
         {
-            _playersService = playersService;
+            _playerService = playersService;
             _accessTokenService = accessTokenService;
             _settings = settings.Value;
         }
@@ -39,11 +42,11 @@ namespace RomgleWebApi.Services.Implementations
             do
             {
                 identity.Id = $"guest_{Guid.NewGuid()}";
-                PlayerByIdentity? existingPlayer = await _playersService.GetByIdentityAsync(identity);
+                PlayerByIdentity? existingPlayer = await _playerService.GetByIdentityAsync(identity);
                 idExists = existingPlayer.HasValue;
             }
             while (idExists);
-            NewPlayer newPlayer = await _playersService.CreateNewAsync(identity);
+            NewPlayer newPlayer = await _playerService.CreateNewAsync(identity);
 
             return await Success(newPlayer.Player, newPlayer.Device.Id);
         }
@@ -87,9 +90,10 @@ namespace RomgleWebApi.Services.Implementations
             string deviceId,
             string refreshToken)
         {
-            Player player = await _playersService.GetAsync(playerId);
-            Device device = player.GetDevice(deviceId);
-            RefreshToken? token = device.RefreshTokens.FirstOrDefault(token => token.Token == refreshToken);
+            Player player = await _playerService.GetAsync(playerId);
+            //Device device = player.GetDevice(deviceId);
+            //RefreshToken? token = device.RefreshTokens.FirstOrDefault(token => token.Token == refreshToken);
+            RefreshToken? token = await _accessTokenService.GetRefreshTokenOrDefaultAsync(refreshToken);
             if (token == null)
             {
                 return AuthenticationResult.Failure;
@@ -103,28 +107,27 @@ namespace RomgleWebApi.Services.Implementations
                 return AuthenticationResult.Failure;
             }
             token.Revoke();
-            await _playersService.UpdateAsync(player);
-
+            await _playerService.UpdateAsync(player);
+            await _accessTokenService.UpdateRefreshTokenAsync(token);
             return await Success(player, deviceId);
         }
 
         public async Task LogoutAsync(string playerId, string deviceId)
         {
-            Player player = await _playersService.GetAsync(playerId);
+            Player player = await _playerService.GetAsync(playerId);
             await LogoutAsync(player, deviceId);
         }
 
         private async Task LogoutAsync(Player player, string deviceId)
         {
             Device device = player.GetDevice(deviceId);
-            device.RevokeRefreshTokens();
-            await _playersService.UpdateAsync(player);
-            await _playersService.RefreshPersonalKeyAsync(player.Id, deviceId);
+            await _accessTokenService.RevokeRefreshTokens(deviceId);
+            await _playerService.RefreshPersonalKeyAsync(player.Id, deviceId);
         }
 
         private async Task<(Player, Device)> AuthenticateAsync(Identity identity, string? deviceId)
         {
-            PlayerByIdentity? playerByIdentity = await _playersService.GetByIdentityAsync(identity);
+            PlayerByIdentity? playerByIdentity = await _playerService.GetByIdentityAsync(identity);
             Player player;
             Device device;
             if (playerByIdentity.HasValue)
@@ -132,42 +135,36 @@ namespace RomgleWebApi.Services.Implementations
                 player = playerByIdentity.Value.Player;
                 if (string.IsNullOrWhiteSpace(deviceId))
                 {
-                    device = await _playersService.CreateNewDeviceAsync(player.Id);
+                    device = await _playerService.CreateNewDeviceAsync(player.Id);
                 }
                 else
                 {
                     device = player.GetDevice(deviceId);
                 }
-                await _playersService.RefreshPersonalKeyAsync(player.Id, device.Id);
+                await _playerService.RefreshPersonalKeyAsync(player.Id, device.Id);
             }
             else
             {
-                NewPlayer newPlayer = await _playersService.CreateNewAsync(identity);
+                NewPlayer newPlayer = await _playerService.CreateNewAsync(identity);
                 player = newPlayer.Player;
                 device = newPlayer.Device;
             }
-
             return (player, device);
         }
 
         private async Task<Player> AddIdentity(string playerId, Identity identity, string deviceId)
         {
-            Player player = await _playersService.GetAsync(playerId);
+            Player player = await _playerService.GetAsync(playerId);
             player.Identities.Add(identity);
-            await _playersService.UpdateAsync(player);
-            await _playersService.RefreshPersonalKeyAsync(player.Id, deviceId);
-
+            await _playerService.UpdateAsync(player);
+            await _playerService.RefreshPersonalKeyAsync(player.Id, deviceId);
             return player;
         }
 
         private async Task<AuthenticationResult> Success(Player player, string deviceId)
         {
             string accessToken = await _accessTokenService.GenerateAccessTokenAsync(player.Id, deviceId);
-            RefreshToken refreshToken = await _accessTokenService.GenerateRefreshTokenAsync();
-            Device device = player.GetDevice(deviceId);
-            device.RefreshTokens.Add(refreshToken);
-            await _playersService.UpdateAsync(player);
-
+            RefreshToken refreshToken = await _accessTokenService.GenerateRefreshTokenAsync(deviceId);
             return AuthenticationResult.Success(accessToken, refreshToken.Token, deviceId);
         }
     }

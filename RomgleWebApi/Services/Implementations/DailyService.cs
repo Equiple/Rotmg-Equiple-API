@@ -6,18 +6,18 @@ using RomgleWebApi.Data.Settings;
 
 namespace RomgleWebApi.Services.Implementations
 {
-    public class DailiesService : IDailiesService
+    public class DailyService : IDailyService
     {
         private readonly IMongoCollection<Daily> _dailiesCollection;
-        private readonly IItemsService _itemsService;
+        private readonly IItemService _itemsService;
 
-        public DailiesService(
+        public DailyService(
             IOptions<RotmgleDatabaseSettings> rotmgleDatabaseSettings,
             IDataCollectionProvider dataCollectionProvider,
-            IItemsService itemsService)
+            IItemService itemsService)
         {
             _dailiesCollection = dataCollectionProvider
-                .GetDataCollection<Daily>(rotmgleDatabaseSettings.Value.DailiesCollectionName)
+                .GetDataCollection<Daily>(rotmgleDatabaseSettings.Value.DailyCollectionName)
                 .AsMongo();
 
             _itemsService = itemsService;

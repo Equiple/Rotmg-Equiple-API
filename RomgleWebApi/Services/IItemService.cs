@@ -2,7 +2,7 @@
 
 namespace RomgleWebApi.Services
 {
-    public interface IItemsService
+    public interface IItemService
     {
         Task<Item> GetAsync(string itemId);
 

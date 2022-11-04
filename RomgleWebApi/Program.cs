@@ -1,3 +1,7 @@
+using Hangfire;
+using Hangfire.Mongo;
+using Hangfire.Mongo.Migration.Strategies.Backup;
+using Hangfire.Mongo.Migration.Strategies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.OpenApi.Models;
 using MongoDB.Bson;
@@ -22,6 +26,28 @@ using System.Text.Json.Serialization;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+
+var migrationOptions = new MongoMigrationOptions
+{
+    MigrationStrategy = new MigrateMongoMigrationStrategy(),
+    BackupStrategy = new CollectionMongoBackupStrategy(),
+};
+
+builder.Services.AddHangfire(configuration => configuration
+        .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
+        .UseSimpleAssemblyNameTypeSerializer()
+        .UseRecommendedSerializerSettings()
+        );
+
+GlobalConfiguration.Configuration.UseMongoStorage(
+    builder.Configuration.GetSection("Hangfire")["ConnectionString"],
+    new MongoStorageOptions 
+    { 
+        MigrationOptions = migrationOptions,
+        CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.TailNotificationsCollection
+    });
+
+builder.Services.AddHangfireServer();
 
 const string authenticationScheme = "AccessToken";
 
@@ -61,15 +87,6 @@ builder.Services.AddControllers(options =>
     options.JsonSerializerOptions.Converters.Add(new JsonStringTimeSpanConverter());
 });
 
-StaticRegistrationHelper.Scope(() =>
-{
-    ConventionPack mongoConventions = new ConventionPack();
-    mongoConventions.Add(new EnumRepresentationConvention(BsonType.String));
-    ConventionRegistry.Register("aMongo", mongoConventions, _ => true);
-
-    BsonClassMapInitializer.Initialize();
-});
-
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.Configure<RotmgleDatabaseSettings>(
@@ -81,10 +98,11 @@ builder.Services.AddAuthenticationService(
     new SelfAuthenticationValidator());
 builder.Services.AddSingleton<IDataCollectionProvider, DefaultMongoDataCollectionProvider>();
 builder.Services.AddSingleton<IAccessTokenService, JWTService>();
-builder.Services.AddSingleton<IItemsService, ItemsService>();
-builder.Services.AddSingleton<IDailiesService, DailiesService>();
-builder.Services.AddSingleton<IPlayersService, PlayersService>();
+builder.Services.AddSingleton<IItemService, ItemService>();
+builder.Services.AddSingleton<IDailyService, DailyService>();
+builder.Services.AddSingleton<IPlayerService, PlayerService>();
 builder.Services.AddSingleton<IGameService, GameService>();
+builder.Services.AddSingleton<IJobService, JobService>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddSwaggerGen(options =>
@@ -94,7 +112,16 @@ builder.Services.AddSwaggerGen(options =>
         Type = "string",
         Format = "time"
     });
-}); 
+});
+
+StaticRegistrationHelper.Scope(() =>
+{
+    ConventionPack mongoConventions = new ConventionPack();
+    mongoConventions.Add(new EnumRepresentationConvention(BsonType.String));
+    ConventionRegistry.Register("MongoDbConvention", mongoConventions, _ => true);
+    RecurringJobInitializer.Initialize();
+    BsonClassMapInitializer.Initialize();
+});
 
 var app = builder.Build();
 
@@ -104,6 +131,7 @@ if (app.Environment.IsDevelopment())
     app.UseCors(builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
     app.UseDeveloperExceptionPage();
 
+    app.UseHangfireDashboard();
     app.UseSwagger();
     app.UseSwaggerUI();
 }

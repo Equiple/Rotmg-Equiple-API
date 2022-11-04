@@ -6,6 +6,9 @@ namespace RomgleWebApi.Extensions
 {
     public static class GameStatisticExtensions
     {
+        /// <summary>
+        /// Returns modified GameStatic based on winning the game.
+        /// </summary>
         public static GameStatistic AddWin(this GameStatistic statistic, string guessId, int tries)
         {
             statistic.BestGuessItemId = guessId;
@@ -23,6 +26,9 @@ namespace RomgleWebApi.Extensions
             return statistic;
         }
 
+        /// <summary>
+        /// Returns modified GameStatic based on losing the game.
+        /// </summary>
         public static GameStatistic AddLose(this GameStatistic statistic)
         {
             if (statistic.CurrentStreak > statistic.BestStreak)
@@ -34,17 +40,23 @@ namespace RomgleWebApi.Extensions
             return statistic;
         }
 
+        /// <summary>
+        /// Converts GameStatistic to DetailedGameStatistic.
+        /// </summary>
         public static Task<DetailedGameStatistic> ToDetailed(
             this GameStatistic stats,
-            IItemsService itemsService)
+            IItemService itemsService)
         {
-            return stats.ToDetailed(getters: new DetailedGameStatisticGetters
+            return stats.ToDetailedAsync(getters: new DetailedGameStatisticGetters
             {
                 BestGuessItem = itemId => itemsService.GetAsync(itemId)
             });
         }
 
-        public static async Task<DetailedGameStatistic> ToDetailed(
+        /// <summary>
+        /// Converts GameStatistic to DetailedGameStatistic.
+        /// </summary>
+        public static async Task<DetailedGameStatistic> ToDetailedAsync(
             this GameStatistic stats,
             DetailedGameStatisticGetters getters = default)
         {
@@ -59,11 +71,8 @@ namespace RomgleWebApi.Extensions
         }
 
         /// <summary>
-        /// Creates a GameStatistic with random values.
+        /// Fills GameStatistic with random values.
         /// </summary>
-        /// <returns>
-        /// Random GameStatistic.
-        /// </returns>
         public static void Randomize(this GameStatistic stats)
         {
             Random random = new Random();

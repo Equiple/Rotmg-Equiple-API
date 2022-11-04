@@ -8,14 +8,14 @@ namespace RomgleWebApi.Services.Implementations
 {
     public class GameService : IGameService
     {
-        private readonly IItemsService _itemsService;
-        private readonly IDailiesService _dailiesService;
-        private readonly IPlayersService _playersService;
+        private readonly IItemService _itemsService;
+        private readonly IDailyService _dailiesService;
+        private readonly IPlayerService _playersService;
 
         public GameService(
-            IItemsService itemsService,
-            IDailiesService dailiesService,
-            IPlayersService playersService)
+            IItemService itemsService,
+            IDailyService dailiesService,
+            IPlayerService playersService)
         {
             _itemsService = itemsService;
             _dailiesService = dailiesService;
@@ -58,13 +58,13 @@ namespace RomgleWebApi.Services.Implementations
 
             if (player.CurrentGame.TargetItemId == guessId)
             {
-                await UpdatePlayerScoreAsync(player, GameResult.Won);
+                await _playersService.UpdatePlayerScoreAsync(player, GameResult.Won);
                 result.Status = GuessStatus.Guessed;
             }
             else if (player.IsOutOfTries())
             {
                 result.TargetItem = await _itemsService.GetAsync(player.CurrentGame.TargetItemId);
-                await UpdatePlayerScoreAsync(player, GameResult.Lost);
+                await _playersService.UpdatePlayerScoreAsync(player, GameResult.Lost);
                 result.Status = GuessStatus.Lost;
             }
             else
@@ -148,50 +148,16 @@ namespace RomgleWebApi.Services.Implementations
             };
         }
 
-        public async Task CloseTheGameAsync(string playerId)
+        public async Task CloseGameAsync(string playerId)
         {
             Player player = await _playersService.GetAsync(playerId);
-            await UpdatePlayerScoreAsync(player, GameResult.Lost);
+            await _playersService.UpdatePlayerScoreAsync(player, GameResult.Lost);
             await _playersService.UpdateAsync(player);
         }
 
         #endregion
 
         #region private methods
-
-        private async Task UpdatePlayerScoreAsync(Player player, GameResult result)
-        {
-            if (player.CurrentGame == null)
-            {
-                return;
-            }
-            if (player.CurrentGame.Mode == Gamemode.Normal)
-            {
-                if (result == GameResult.Won)
-                {
-                    player.NormalStats = player.NormalStats.AddWin(player.CurrentGame.TargetItemId, player.CurrentGame.GuessItemIds.Count);
-                }
-                else if (result == GameResult.Lost)
-                {
-                    player.NormalStats = player.NormalStats.AddLose();
-                }
-            }
-            else if (player.CurrentGame.Mode == Gamemode.Daily)
-            {
-                if (result == GameResult.Won)
-                {
-                    player.DailyStats = player.DailyStats.AddWin(player.CurrentGame.TargetItemId, player.CurrentGame.GuessItemIds.Count);
-                }
-                else if (result == GameResult.Lost)
-                {
-                    player.DailyStats = player.DailyStats.AddLose();
-                }
-            }
-            player.CurrentGame.IsEnded = true;
-            player.CurrentGame.GameResult = result;
-            player.EndedGames.Add(player.CurrentGame);
-            await _playersService.UpdateAsync(player);
-        }
 
         private async Task StartNewGameAsync(Player player, string targetItemId, Gamemode mode, bool reskinsExcluded)
         {

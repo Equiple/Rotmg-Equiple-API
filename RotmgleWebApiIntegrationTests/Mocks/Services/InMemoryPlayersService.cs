@@ -9,7 +9,7 @@ using RomgleWebApi.Utils;
 
 namespace RotmgleWebApiTests.Mocks.Services
 {
-    internal class InMemoryPlayersService : IPlayersServiceMock, IPlayersService
+    internal class InMemoryPlayersService : IPlayersServiceMock, IPlayerService
     {
         private readonly List<Player> _players = new List<Player>();
 
@@ -92,13 +92,6 @@ namespace RotmgleWebApiTests.Mocks.Services
             await UpdateAsync(player);
         }
 
-        public async Task<bool> DoesRefreshTokenExistAsync(string refreshToken)
-        {
-            return _players.Any(player => player.Devices
-                .Any(device => device.RefreshTokens
-                    .Any(token => token.Token == refreshToken)));
-        }
-
         public Task<bool> WasDailyAttemptedAsync(string id)
         {
             throw new NotImplementedException();
@@ -135,6 +128,21 @@ namespace RotmgleWebApiTests.Mocks.Services
         }
 
         public Task<int> GetPlayerLeaderboardPlacementAsync(string playerId, Gamemode mode)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task InvalidateExpiredDailyGamesAsync()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task RemoveInactiveGuestAccountsAsync()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task UpdatePlayerScoreAsync(Player player, GameResult result)
         {
             throw new NotImplementedException();
         }

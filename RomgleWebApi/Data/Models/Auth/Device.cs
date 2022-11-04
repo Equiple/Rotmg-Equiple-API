@@ -7,7 +7,5 @@
         public string PersonalKey { get; set; }
 
         public string PersonalKeyEncoding { get; set; }
-
-        public List<RefreshToken> RefreshTokens { get; set; }
     }
 }

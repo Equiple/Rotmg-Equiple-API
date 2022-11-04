@@ -11,14 +11,14 @@ namespace RomgleWebApi.Controllers
     [Route("/profile")]
     public class ProfileController : Controller
     {
-        private readonly IPlayersService _playersService;
-        private readonly IItemsService _itemsService;
+        private readonly IPlayerService _playersService;
+        private readonly IItemService _itemsService;
         private readonly ILogger<GameController> _logger;
 
         public ProfileController(
             ILogger<GameController> logger,
-            IPlayersService playersService,
-            IItemsService itemsService)
+            IPlayerService playersService,
+            IItemService itemsService)
         {
             _logger = logger;
             _playersService = playersService;

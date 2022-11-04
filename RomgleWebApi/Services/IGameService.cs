@@ -18,6 +18,6 @@ namespace RomgleWebApi.Services
 
         Task<GameOptions?> GetActiveGameOptionsAsync(string playerId);
 
-        Task CloseTheGameAsync(string playerId);
+        Task CloseGameAsync(string playerId);
     }
 }

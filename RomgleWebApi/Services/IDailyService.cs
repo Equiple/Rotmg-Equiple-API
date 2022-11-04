@@ -2,7 +2,7 @@
 
 namespace RomgleWebApi.Services
 {
-    public interface IDailiesService
+    public interface IDailyService
     {
         Task<Daily> GetAsync();
     }

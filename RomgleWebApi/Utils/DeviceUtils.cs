@@ -13,8 +13,7 @@ namespace RomgleWebApi.Utils
             {
                 Id = deviceId,
                 PersonalKey = personalKey,
-                PersonalKeyEncoding = personalKeyEncoding,
-                RefreshTokens = new List<RefreshToken>()
+                PersonalKeyEncoding = personalKeyEncoding
             };
         }
 

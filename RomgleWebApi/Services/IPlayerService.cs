@@ -1,12 +1,17 @@
-﻿using RomgleWebApi.Data;
+﻿using Hangfire;
+using RomgleWebApi.Data;
 using RomgleWebApi.Data.Models;
 using RomgleWebApi.Data.Models.Auth;
 
 namespace RomgleWebApi.Services
 {
-    public interface IPlayersService
+    public interface IPlayerService
     {
         Task<Player> GetAsync(string playerId);
+
+        Task InvalidateExpiredDailyGamesAsync();
+
+        Task RemoveInactiveGuestAccountsAsync();
 
         Task<PlayerByIdentity?> GetByIdentityAsync(Identity identity);
 
@@ -17,8 +22,6 @@ namespace RomgleWebApi.Services
         Task UpdateAsync(Player updatedPlayer);
 
         Task RefreshPersonalKeyAsync(string playerId, string deviceId);
-
-        Task<bool> DoesRefreshTokenExistAsync(string refreshToken);
 
         Task<bool> WasDailyAttemptedAsync(string playerId);
 
@@ -35,5 +38,7 @@ namespace RomgleWebApi.Services
         Task<IReadOnlyList<PlayerProfile>> GetNormalLeaderboardAsync();
 
         Task<int> GetPlayerLeaderboardPlacementAsync(string playerId, Gamemode mode);
+
+        Task UpdatePlayerScoreAsync(Player player, GameResult result);
     }
 }

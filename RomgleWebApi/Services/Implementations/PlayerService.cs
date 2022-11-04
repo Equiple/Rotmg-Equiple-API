@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Options;
+﻿using Hangfire;
+using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 using RomgleWebApi.DAL;
@@ -12,21 +13,21 @@ using System.Text;
 
 namespace RomgleWebApi.Services.Implementations
 {
-    public class PlayersService : IPlayersService
+    public class PlayerService : IPlayerService
     {
         private readonly TokenAuthorizationSettings _tokenAuthorizationSettings;
         private readonly IMongoCollection<Player> _playersCollection;
-        private readonly IItemsService _itemsService;
+        private readonly IItemService _itemsService;
 
-        public PlayersService(
+        public PlayerService(
             IOptions<RotmgleDatabaseSettings> rotmgleDatabaseSettings,
             IOptions<TokenAuthorizationSettings> tokenAuthorizationSettings,
             IDataCollectionProvider dataCollectionProvider,
-            IItemsService itemsService)
+            IItemService itemsService)
         {
             _tokenAuthorizationSettings = tokenAuthorizationSettings.Value;
             _playersCollection = dataCollectionProvider
-                .GetDataCollection<Player>(rotmgleDatabaseSettings.Value.PlayersCollectionName)
+                .GetDataCollection<Player>(rotmgleDatabaseSettings.Value.PlayerCollectionName)
                 .AsMongo();
             _itemsService = itemsService;
         }
@@ -35,6 +36,27 @@ namespace RomgleWebApi.Services.Implementations
         {
             Player player = await _playersCollection.Find(player => player.Id == playerId).FirstAsync();
             return player;
+        }
+
+        public async Task InvalidateExpiredDailyGamesAsync()
+        { 
+            IMongoQueryable<Player> players = _playersCollection
+                .AsQueryable()
+                .Where(player => player.CurrentGame != null
+                    && !player.CurrentGame.IsEnded
+                    && player.CurrentGame.Mode == Gamemode.Daily
+                );
+            foreach(Player player in players)
+            {
+                await UpdatePlayerScoreAsync(player, GameResult.Lost);
+            }
+        }
+
+        public async Task RemoveInactiveGuestAccountsAsync()
+        {
+            DateTime weekAgo = DateTime.UtcNow.Date.AddDays(-7);
+            await _playersCollection.DeleteManyAsync(player => player.Identities[0].Provider == IdentityProvider.Self
+                    && player.LastSeen.Date < weekAgo);
         }
 
         public async Task<PlayerByIdentity?> GetByIdentityAsync(Identity identity)
@@ -87,6 +109,7 @@ namespace RomgleWebApi.Services.Implementations
 
         public async Task UpdateAsync(Player updatedPlayer)
         {
+            updatedPlayer.LastSeen = DateTime.UtcNow;
             await _playersCollection.ReplaceOneAsync(player => player.Id == updatedPlayer.Id, updatedPlayer);
         }
 
@@ -97,18 +120,6 @@ namespace RomgleWebApi.Services.Implementations
             string key = await GenerateUniquePersonalKey();
             device.PersonalKey = key;
             await UpdateAsync(player);
-        }
-
-        public async Task<bool> DoesRefreshTokenExistAsync(string refreshToken)
-        {
-            Player? existingPlayer = await _playersCollection
-                .Find(player => player.Devices
-                    .Where(device => device.RefreshTokens
-                        .Where(token => token.Token == refreshToken)
-                        .Any())
-                    .Any())
-                .FirstOrDefaultAsync();
-            return existingPlayer != null;
         }
 
         public async Task<bool> WasDailyAttemptedAsync(string id)
@@ -219,6 +230,40 @@ namespace RomgleWebApi.Services.Implementations
                     $"Invalid {nameof(Gamemode)} value: [{mode}]\n");
             }
             return leaderboard.FirstIndex(player => player.Id == playerId);
+        }
+
+        public async Task UpdatePlayerScoreAsync(Player player, GameResult result)
+        {
+            if (player.CurrentGame == null)
+            {
+                return;
+            }
+            if (player.CurrentGame.Mode == Gamemode.Normal)
+            {
+                if (result == GameResult.Won)
+                {
+                    player.NormalStats = player.NormalStats.AddWin(player.CurrentGame.TargetItemId, player.CurrentGame.GuessItemIds.Count);
+                }
+                else if (result == GameResult.Lost)
+                {
+                    player.NormalStats = player.NormalStats.AddLose();
+                }
+            }
+            else if (player.CurrentGame.Mode == Gamemode.Daily)
+            {
+                if (result == GameResult.Won)
+                {
+                    player.DailyStats = player.DailyStats.AddWin(player.CurrentGame.TargetItemId, player.CurrentGame.GuessItemIds.Count);
+                }
+                else if (result == GameResult.Lost)
+                {
+                    player.DailyStats = player.DailyStats.AddLose();
+                }
+            }
+            player.CurrentGame.IsEnded = true;
+            player.CurrentGame.GameResult = result;
+            player.EndedGames.Add(player.CurrentGame);
+            await UpdateAsync(player);
         }
 
         #region private methods

@@ -10,6 +10,8 @@ namespace RomgleWebApi.Data.Models
 
         public DateAndTime RegistrationDate { get; set; }
 
+        public DateAndTime LastSeen { get; set; }
+
         public List<Identity> Identities { get; set; }
 
         public List<Device> Devices { get; set; }

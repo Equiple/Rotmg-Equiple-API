@@ -63,7 +63,7 @@ namespace RotmgleWebApiTests.IntegrationTests
             {
                 builder.ConfigureTestServices(services =>
                 {
-                    services.AddSingleton<IPlayersService>(_playersService);
+                    services.AddSingleton<IPlayerService>(_playersService);
 
                     foreach (Action<IServiceCollection> configuration in configurations)
                     {

@@ -50,7 +50,7 @@ namespace RotmgleWebApiTests.IntegrationTests
         public async Task UnauthorizedRequestToUnsecuredEndpoint_Returns200()
         {
             //Arrange
-            Mock<IItemsService> itemsServiceMock = new Mock<IItemsService>();
+            Mock<IItemService> itemsServiceMock = new Mock<IItemService>();
             itemsServiceMock
                 .Setup(service => service.FindAllAsync(It.IsAny<string>(), It.IsAny<bool>()))
                 .Returns(Task.FromResult((IReadOnlyList<Item>)new List<Item>()));

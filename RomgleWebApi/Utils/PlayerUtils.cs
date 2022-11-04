@@ -20,6 +20,7 @@ namespace RomgleWebApi.Utils
             {
                 Name = identity.Details.Name,
                 RegistrationDate = DateTime.UtcNow,
+                LastSeen = DateTime.UtcNow,
                 Identities = new List<Identity> { identity },
                 Devices = new List<Device> { device },
                 NormalStats = new GameStatistic(),

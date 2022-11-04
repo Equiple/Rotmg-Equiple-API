@@ -1,7 +1,24 @@
-﻿namespace RomgleWebApi.Utils
+﻿using System.Diagnostics.Metrics;
+
+namespace RomgleWebApi.Utils
 {
     public static class StringUtils
     {
+        public static readonly List<String> DefaultNames = GetListOfDefaultNames();
+
+        /// <summary>
+        /// Gets a list of default names from a file.
+        /// </summary>
+        public static List<string> GetListOfDefaultNames()
+        {
+            List<string> names = new List<string>();
+            foreach (string line in File.ReadLines(@"\Assets\DefaultNames.txt"))
+            {
+                names.Add(line);
+            }
+            return names;
+        }
+
         /// <summary>
         /// Generates a string that looks like a name.
         /// </summary>

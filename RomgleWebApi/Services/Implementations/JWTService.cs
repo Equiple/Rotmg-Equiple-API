@@ -1,5 +1,8 @@
 ﻿using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using MongoDB.Driver;
+using MongoDB.Driver.Linq;
+using RomgleWebApi.DAL;
 using RomgleWebApi.Data.Models;
 using RomgleWebApi.Data.Models.Auth;
 using RomgleWebApi.Data.Settings;
@@ -13,19 +16,27 @@ namespace RomgleWebApi.Services.Implementations
 {
     public class JWTService : IAccessTokenService
     {
-        private readonly IPlayersService _playersService;
+        private readonly IPlayerService _playersService;
         private readonly TokenAuthorizationSettings _authorizationSettings;
         private readonly ILogger<JWTService> _logger;
+        private readonly IMongoCollection<RefreshToken> _refreshTokenCollection;
 
         public JWTService(
-            IPlayersService playersService,
+            IPlayerService playersService,
             IOptions<TokenAuthorizationSettings> authorizationSettings,
+            IOptions<RotmgleDatabaseSettings> rotmgleDatabaseSettings,
+            IDataCollectionProvider dataCollectionProvider,
             ILogger<JWTService> logger)
         {
             _playersService = playersService;
             _authorizationSettings = authorizationSettings.Value;
+            _refreshTokenCollection = dataCollectionProvider
+                .GetDataCollection<RefreshToken>(rotmgleDatabaseSettings.Value.RefreshTokenCollectionName)
+                .AsMongo();
             _logger = logger;
         }
+
+        #region public methods
 
         public async Task<string> GenerateAccessTokenAsync(string playerId, string deviceId)
         {
@@ -52,23 +63,23 @@ namespace RomgleWebApi.Services.Implementations
             return serializedToken;
         }
 
-        public async Task<RefreshToken> GenerateRefreshTokenAsync()
+        public async Task<RefreshToken> GenerateRefreshTokenAsync(string deviceId)
         {
             string tokenValue;
             bool alreadyExists;
             do
             {
                 tokenValue = SecurityUtils.GenerateBase64SecurityKey();
-                alreadyExists = await _playersService.DoesRefreshTokenExistAsync(tokenValue);
+                alreadyExists = await DoesRefreshTokenExistAsync(tokenValue);
             }
             while (alreadyExists);
-
             RefreshToken token = new RefreshToken
             {
                 Token = tokenValue,
-                Expires = DateTime.UtcNow.AddDays(_authorizationSettings.RefreshTokenLifetimeDays)
+                Expires = DateTime.UtcNow.AddDays(_authorizationSettings.RefreshTokenLifetimeDays),
+                DeviceId = deviceId
             };
-
+            await _refreshTokenCollection.InsertOneAsync(token);
             return token;
         }
 
@@ -122,6 +133,51 @@ namespace RomgleWebApi.Services.Implementations
                 return null;
             }
         }
+
+        public async Task UpdateRefreshTokenAsync(RefreshToken token)
+        {
+            await _refreshTokenCollection.ReplaceOneAsync(refreshToken => refreshToken.Token == token.Token, token);
+        }
+
+        public async Task<RefreshToken?> GetRefreshTokenOrDefaultAsync(string refreshToken)
+        {
+            IMongoQueryable<RefreshToken> tokens = _refreshTokenCollection.AsQueryable()
+                .Where(token => token.Token == refreshToken);
+            return await tokens.FirstOrDefaultAsync();
+        }
+
+        public async Task RevokeRefreshTokens(string deviceId)
+        {
+            IMongoQueryable<RefreshToken> tokens = _refreshTokenCollection.AsQueryable()
+                .Where(refreshToken => refreshToken.DeviceId == deviceId);
+            var updates = new List<WriteModel<RefreshToken>>();
+            var filterBuilder = Builders<RefreshToken>.Filter;
+            foreach (RefreshToken refreshToken in tokens)
+            {
+                if (!refreshToken.IsActive())
+                {
+                    return;
+                }
+                refreshToken.Revoked = DateTime.UtcNow;
+                var filter = filterBuilder.Where(token => token.Token == refreshToken.Token);
+                updates.Add(new ReplaceOneModel<RefreshToken>(filter, refreshToken));
+            }
+            await _refreshTokenCollection.BulkWriteAsync(updates);
+        }
+
+        public async Task<bool> DoesRefreshTokenExistAsync(string refreshToken)
+        {
+            RefreshToken? refToken = await _refreshTokenCollection
+                .Find(token => token.Token == refreshToken).FirstOrDefaultAsync();
+            return refToken != null;
+        }
+
+        public async Task RemoveExpiredRefreshTokensAsync()
+        {
+            await _refreshTokenCollection.DeleteManyAsync(token => token.Expires.Date < DateTime.UtcNow.Date);
+        }
+
+        #endregion public methods
 
         private async Task<SecurityKey> GetSecurityKey(string playerId, string deviceId)
         {

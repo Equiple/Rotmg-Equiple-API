@@ -11,17 +11,17 @@ namespace RomgleWebApi.Controllers
     [Route("/")]
     public class GameController : ControllerBase
     {
-        private readonly IItemsService _itemsService;
-        private readonly IPlayersService _playersService;
-        private readonly IDailiesService _dailiesService;
+        private readonly IItemService _itemsService;
+        private readonly IPlayerService _playersService;
+        private readonly IDailyService _dailiesService;
         private readonly IGameService _gameService;
         private readonly ILogger<GameController> _logger;
 
         public GameController(
             ILogger<GameController> logger,
-            IItemsService itemsService,
-            IPlayersService playersService,
-            IDailiesService dailiesService,
+            IItemService itemsService,
+            IPlayerService playersService,
+            IDailyService dailiesService,
             IGameService gameService)
         {
             _logger = logger;
@@ -110,7 +110,7 @@ namespace RomgleWebApi.Controllers
         [HttpPost("CloseTheGame")]
         public async Task CloseTheGame([UserId] string playerId)
         {
-            await _gameService.CloseTheGameAsync(playerId);
+            await _gameService.CloseGameAsync(playerId);
         }
 
         [HttpGet("GetTargetItem")]

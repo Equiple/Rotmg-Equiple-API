@@ -7,22 +7,22 @@ using RomgleWebApi.Data.Settings;
 
 namespace RomgleWebApi.Services.Implementations
 {
-    public class ItemsService : IItemsService
+    public class ItemService : IItemService
     {
         private readonly IMongoCollection<Item> _itemsCollection;
 
-        public ItemsService(
+        public ItemService(
             IOptions<RotmgleDatabaseSettings> rotmgleDatabaseSettings,
             IDataCollectionProvider dataCollectionProvider)
         {
             _itemsCollection = dataCollectionProvider
-                .GetDataCollection<Item>(rotmgleDatabaseSettings.Value.ItemsCollectionName)
+                .GetDataCollection<Item>(rotmgleDatabaseSettings.Value.ItemCollectionName)
                 .AsMongo();
         }
 
         public async Task<Item> GetAsync(string itemId) 
         {
-            return await _itemsCollection.Find(x => x.Id == itemId).FirstAsync();
+            return await _itemsCollection.Find(item => item.Id == itemId).FirstAsync();
         }
 
         public async Task<IReadOnlyList<Item>> FindAllAsync(string searchInput, bool reskinsExcluded)
