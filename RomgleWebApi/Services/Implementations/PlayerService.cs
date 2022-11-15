@@ -323,7 +323,7 @@ namespace RomgleWebApi.Services.Implementations
                     Id = "knock_off",
                     Details = new IdentityDetails
                     {
-                        Name = StringUtils.GenerateRandomNameLookingString()
+                        Name = StringUtils.GetRandomDefaultName()
                     }
                 };
                 NewPlayer newPlayer = await CreateNewAsync(identity);

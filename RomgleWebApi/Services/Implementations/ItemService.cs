@@ -30,8 +30,16 @@ namespace RomgleWebApi.Services.Implementations
             searchInput = searchInput.ToLower();
             List<string> searchTags = searchInput.Split(' ').ToList();
             //List<Item> searchResult = await _itemsCollection.AsQueryable().Where(x => x.Name.ToLower().Contains(searchInput)).ToListAsync();
-            IMongoQueryable<Item> searchResult = _itemsCollection.AsQueryable().Where(
-                item => item.Name.ToLower().Contains(searchInput) || searchTags.All(tag => item.Tags.Contains(tag)));
+            IMongoQueryable<Item> searchResult;
+            if (searchInput == "all")
+            {
+                searchResult = _itemsCollection.AsQueryable().Where(item => true);
+            }
+            else
+            {
+                searchResult = _itemsCollection.AsQueryable().Where(
+                    item => item.Name.ToLower().Contains(searchInput) || searchTags.All(tag => item.Tags.Contains(tag)));
+            }
             if (reskinsExcluded)
             {
                 searchResult = searchResult.Where(x => !x.Reskin);

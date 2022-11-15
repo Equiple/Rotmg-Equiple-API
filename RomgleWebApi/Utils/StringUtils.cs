@@ -4,7 +4,7 @@ namespace RomgleWebApi.Utils
 {
     public static class StringUtils
     {
-        public static readonly List<String> DefaultNames = GetListOfDefaultNames();
+        public static readonly List<string> DefaultNames = GetListOfDefaultNames();
 
         /// <summary>
         /// Gets a list of default names from a file.
@@ -12,7 +12,7 @@ namespace RomgleWebApi.Utils
         public static List<string> GetListOfDefaultNames()
         {
             List<string> names = new List<string>();
-            foreach (string line in File.ReadLines(@"\Assets\DefaultNames.txt"))
+            foreach (string line in File.ReadLines(@".\Assets\DefaultNames.txt"))
             {
                 names.Add(line);
             }
@@ -64,6 +64,16 @@ namespace RomgleWebApi.Utils
                 randomList.Add(GenerateRandomNameLookingString());
             }
             return randomList;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public static string GetRandomDefaultName()
+        {
+            Random random = new Random();
+            return DefaultNames[random.Next(DefaultNames.Count)];
         }
     }
 }

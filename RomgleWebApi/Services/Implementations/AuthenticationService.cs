@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
+using NUnit.Framework.Internal;
 using RomgleWebApi.Authentication.AuthenticationValidators;
 using RomgleWebApi.DAL;
 using RomgleWebApi.Data;
@@ -9,6 +10,7 @@ using RomgleWebApi.Data.Models;
 using RomgleWebApi.Data.Models.Auth;
 using RomgleWebApi.Data.Settings;
 using RomgleWebApi.Extensions;
+using RomgleWebApi.Utils;
 
 namespace RomgleWebApi.Services.Implementations
 {
@@ -35,7 +37,7 @@ namespace RomgleWebApi.Services.Implementations
                 Provider = IdentityProvider.Self,
                 Details = new IdentityDetails
                 {
-                    Name = "Itani"
+                    Name = StringUtils.GetRandomDefaultName()
                 }
             };
             bool idExists;
