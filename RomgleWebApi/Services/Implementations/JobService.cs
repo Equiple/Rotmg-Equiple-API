@@ -3,18 +3,18 @@
     public class JobService : IJobService
     {
         private readonly IPlayerService _playerService;
-        private readonly IAccessTokenService _accessTokenService;
+        private readonly IRefreshTokenService _refreshTokenService;
 
         public JobService(IPlayerService playerService,
-            IAccessTokenService accessTokenService)
+            IRefreshTokenService refreshTokenService)
         {
             _playerService = playerService;
-            _accessTokenService = accessTokenService;
+            _refreshTokenService = refreshTokenService;
         }
 
         public async Task RemoveExpiredTokensAndGuestsAsync()
         {
-            await _accessTokenService.RemoveExpiredRefreshTokensAsync();
+            await _refreshTokenService.RemoveExpiredTokensAsync();
             await _playerService.RemoveInactiveGuestAccountsAsync();
         }
     }

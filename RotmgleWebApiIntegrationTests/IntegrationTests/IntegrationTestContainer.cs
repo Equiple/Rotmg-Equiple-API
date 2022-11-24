@@ -12,12 +12,17 @@ namespace RotmgleWebApiTests.IntegrationTests
 
         private readonly InMemoryPlayersService _playersService = new InMemoryPlayersService();
 
+        private readonly InMemoryRefreshTokenService _refreshTokenService = new InMemoryRefreshTokenService();
+
         protected IPlayersServiceMock PlayersServiceMock => _playersService;
+
+        protected IRefreshTokenServiceMock RefreshTokenServiceMock => _refreshTokenService;
 
         [SetUp]
         public void BaseSetup()
         {
             _playersService.SetInitialPlayers();
+            _refreshTokenService.SetInitialRefreshTokens();
             Setup();
         }
 
@@ -64,6 +69,7 @@ namespace RotmgleWebApiTests.IntegrationTests
                 builder.ConfigureTestServices(services =>
                 {
                     services.AddSingleton<IPlayerService>(_playersService);
+                    services.AddSingleton<IRefreshTokenService>(_refreshTokenService);
 
                     foreach (Action<IServiceCollection> configuration in configurations)
                     {

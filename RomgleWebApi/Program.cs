@@ -98,6 +98,7 @@ builder.Services.AddAuthenticationService(
     new SelfAuthenticationValidator());
 builder.Services.AddSingleton<IDataCollectionProvider, DefaultMongoDataCollectionProvider>();
 builder.Services.AddSingleton<IAccessTokenService, JWTService>();
+builder.Services.AddSingleton<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddSingleton<IItemService, ItemService>();
 builder.Services.AddSingleton<IDailyService, DailyService>();
 builder.Services.AddSingleton<IPlayerService, PlayerService>();

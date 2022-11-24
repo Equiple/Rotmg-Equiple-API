@@ -30,7 +30,7 @@ namespace RomgleWebApi.Services.Implementations
             await _refreshTokenCollection.ReplaceOneAsync(refreshToken => refreshToken.Token == token.Token, token);
         }
 
-        public async Task<RefreshToken?> GetRefreshTokenOrDefaultAsync(string refreshToken)
+        public async Task<RefreshToken?> GetTokenOrDefaultAsync(string refreshToken)
         {
             IMongoQueryable<RefreshToken> tokens = _refreshTokenCollection.AsQueryable()
                 .Where(token => token.Token == refreshToken);

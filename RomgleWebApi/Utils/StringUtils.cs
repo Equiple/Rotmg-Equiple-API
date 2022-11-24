@@ -12,7 +12,7 @@ namespace RomgleWebApi.Utils
         public static List<string> GetListOfDefaultNames()
         {
             List<string> names = new List<string>();
-            foreach (string line in File.ReadLines(@".\Assets\DefaultNames.txt"))
+            foreach (string line in File.ReadLines(@"E:\Projects\.other stuff\RomgleWebApi\RomgleWebApi\Assets\DefaultNames.txt"))
             {
                 names.Add(line);
             }

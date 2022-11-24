@@ -10,7 +10,7 @@ namespace RomgleWebApi.Services
 
         Task UpdateAsync(RefreshToken token);
 
-        Task<RefreshToken?> GetRefreshTokenOrDefaultAsync(string refreshToken);
+        Task<RefreshToken?> GetTokenOrDefaultAsync(string refreshToken);
 
         Task RevokeRefreshTokens(string deviceId);
 

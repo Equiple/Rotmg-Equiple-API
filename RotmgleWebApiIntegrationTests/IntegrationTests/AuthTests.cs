@@ -20,10 +20,10 @@ namespace RotmgleWebApiTests.IntegrationTests
         private const string AuthenticateResponse = "Authenticate response";
         private const string IsAuthenticated = "Authenticated";
         private const string AccessTokenIncluded = "Access token included";
-        private const string RefreshTokenIncluded = "Access token included";
+        private const string RefreshTokenIncluded = "Refresh token included";
         private const string DeviceIdIncluded = "Device id included";
         private const string AccessTokenOmitted = "Access token omitted";
-        private const string RefreshTokenOmitted = "Access token omitted";
+        private const string RefreshTokenOmitted = "Refresh token omitted";
         private const string DeviceIdOmitted = "Device id omitted";
 
         protected override void Setup()

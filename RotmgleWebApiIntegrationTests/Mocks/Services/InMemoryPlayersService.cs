@@ -1,8 +1,6 @@
-﻿using Microsoft.Extensions.Options;
-using RomgleWebApi.Data;
+﻿using RomgleWebApi.Data;
 using RomgleWebApi.Data.Models;
 using RomgleWebApi.Data.Models.Auth;
-using RomgleWebApi.Data.Settings;
 using RomgleWebApi.Extensions;
 using RomgleWebApi.Services;
 using RomgleWebApi.Utils;

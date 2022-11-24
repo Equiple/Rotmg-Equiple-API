@@ -17,22 +17,21 @@ namespace RomgleWebApi.Services.Implementations
     public class JWTService : IAccessTokenService
     {
         private readonly IPlayerService _playersService;
+        private readonly IRefreshTokenService _refreshTokenService;
         private readonly TokenAuthorizationSettings _authorizationSettings;
         private readonly ILogger<JWTService> _logger;
-        private readonly IMongoCollection<RefreshToken> _refreshTokenCollection;
 
         public JWTService(
             IPlayerService playersService,
+            IRefreshTokenService refreshTokenService,
             IOptions<TokenAuthorizationSettings> authorizationSettings,
             IOptions<RotmgleDatabaseSettings> rotmgleDatabaseSettings,
             IDataCollectionProvider dataCollectionProvider,
             ILogger<JWTService> logger)
         {
             _playersService = playersService;
+            _refreshTokenService = refreshTokenService;
             _authorizationSettings = authorizationSettings.Value;
-            _refreshTokenCollection = dataCollectionProvider
-                .GetDataCollection<RefreshToken>(rotmgleDatabaseSettings.Value.RefreshTokenCollectionName)
-                .AsMongo();
             _logger = logger;
         }
 
@@ -70,7 +69,7 @@ namespace RomgleWebApi.Services.Implementations
             do
             {
                 tokenValue = SecurityUtils.GenerateBase64SecurityKey();
-                alreadyExists = await DoesRefreshTokenExistAsync(tokenValue);
+                alreadyExists = await _refreshTokenService.DoesExistAsync(tokenValue);
             }
             while (alreadyExists);
             RefreshToken token = new RefreshToken
@@ -79,7 +78,7 @@ namespace RomgleWebApi.Services.Implementations
                 Expires = DateTime.UtcNow.AddDays(_authorizationSettings.RefreshTokenLifetimeDays),
                 DeviceId = deviceId
             };
-            await _refreshTokenCollection.InsertOneAsync(token);
+            await _refreshTokenService.CreateAsync(token);
             return token;
         }
 
@@ -132,49 +131,6 @@ namespace RomgleWebApi.Services.Implementations
             {
                 return null;
             }
-        }
-
-        public async Task UpdateRefreshTokenAsync(RefreshToken token)
-        {
-            await _refreshTokenCollection.ReplaceOneAsync(refreshToken => refreshToken.Token == token.Token, token);
-        }
-
-        public async Task<RefreshToken?> GetRefreshTokenOrDefaultAsync(string refreshToken)
-        {
-            IMongoQueryable<RefreshToken> tokens = _refreshTokenCollection.AsQueryable()
-                .Where(token => token.Token == refreshToken);
-            return await tokens.FirstOrDefaultAsync();
-        }
-
-        public async Task RevokeRefreshTokens(string deviceId)
-        {
-            IMongoQueryable<RefreshToken> tokens = _refreshTokenCollection.AsQueryable()
-                .Where(refreshToken => refreshToken.DeviceId == deviceId);
-            var updates = new List<WriteModel<RefreshToken>>();
-            var filterBuilder = Builders<RefreshToken>.Filter;
-            foreach (RefreshToken refreshToken in tokens)
-            {
-                if (!refreshToken.IsActive())
-                {
-                    return;
-                }
-                refreshToken.Revoked = DateTime.UtcNow;
-                var filter = filterBuilder.Where(token => token.Token == refreshToken.Token);
-                updates.Add(new ReplaceOneModel<RefreshToken>(filter, refreshToken));
-            }
-            await _refreshTokenCollection.BulkWriteAsync(updates);
-        }
-
-        public async Task<bool> DoesRefreshTokenExistAsync(string refreshToken)
-        {
-            RefreshToken? refToken = await _refreshTokenCollection
-                .Find(token => token.Token == refreshToken).FirstOrDefaultAsync();
-            return refToken != null;
-        }
-
-        public async Task RemoveExpiredRefreshTokensAsync()
-        {
-            await _refreshTokenCollection.DeleteManyAsync(token => token.Expires.Date < DateTime.UtcNow.Date);
         }
 
         #endregion public methods

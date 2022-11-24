@@ -18,15 +18,18 @@ namespace RomgleWebApi.Services.Implementations
     {
         private readonly IPlayerService _playerService;
         private readonly IAccessTokenService _accessTokenService;
+        private readonly IRefreshTokenService _refreshTokenService;
         private readonly AuthenticationServiceSettings _settings;
 
         public AuthenticationService(
             IPlayerService playersService,
             IAccessTokenService accessTokenService,
+            IRefreshTokenService refreshTokenService,
             IOptions<AuthenticationServiceSettings> settings)
         {
             _playerService = playersService;
             _accessTokenService = accessTokenService;
+            _refreshTokenService = refreshTokenService;
             _settings = settings.Value;
         }
 
@@ -95,7 +98,7 @@ namespace RomgleWebApi.Services.Implementations
             Player player = await _playerService.GetAsync(playerId);
             //Device device = player.GetDevice(deviceId);
             //RefreshToken? token = device.RefreshTokens.FirstOrDefault(token => token.Token == refreshToken);
-            RefreshToken? token = await _accessTokenService.GetRefreshTokenOrDefaultAsync(refreshToken);
+            RefreshToken? token = await _refreshTokenService.GetTokenOrDefaultAsync(refreshToken);
             if (token == null)
             {
                 return AuthenticationResult.Failure;
@@ -110,7 +113,7 @@ namespace RomgleWebApi.Services.Implementations
             }
             token.Revoke();
             await _playerService.UpdateAsync(player);
-            await _accessTokenService.UpdateRefreshTokenAsync(token);
+            await _refreshTokenService.UpdateAsync(token);
             return await Success(player, deviceId);
         }
 
@@ -123,7 +126,7 @@ namespace RomgleWebApi.Services.Implementations
         private async Task LogoutAsync(Player player, string deviceId)
         {
             Device device = player.GetDevice(deviceId);
-            await _accessTokenService.RevokeRefreshTokens(deviceId);
+            await _refreshTokenService.RevokeRefreshTokens(deviceId);
             await _playerService.RefreshPersonalKeyAsync(player.Id, deviceId);
         }
 
