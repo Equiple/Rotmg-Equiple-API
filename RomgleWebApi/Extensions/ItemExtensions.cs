@@ -1,10 +1,14 @@
 ﻿using MongoDB.Driver;
+using NUnit.Framework.Internal;
 using RomgleWebApi.Data.Models;
+using RomgleWebApi.Utils;
 
 namespace RomgleWebApi.Extensions
 {
     public static class ItemExtensions
     {
+        private static readonly Random random = new Random();
+
         #region public methods
 
         /// <summary>
@@ -74,6 +78,35 @@ namespace RomgleWebApi.Extensions
                 labels += "tradeable ";
             }
             return labels.ToLower();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public static string GenerateAnagram(this Item item) 
+        {
+            string name = item.Name
+                .RemoveSymbols(",.`()-_:;\"!?'")
+                .ToLower();
+            List<string> initialWords = name.Split(' ').ToList();
+            string anagram = "";
+            foreach(char letter in name)
+            {
+                if (!anagram.Contains(letter) && letter != ' ')
+                {
+                    anagram += letter;
+                }
+            }
+            bool check = true;
+            while (check)
+            {
+                anagram = anagram.Shuffle();
+                if (!anagram.Contains(StringUtils.IgnoredWords) && !anagram.Contains(initialWords))
+                {
+                    check = false;
+                }
+            }
+            return anagram;
         }
 
         #endregion public methods

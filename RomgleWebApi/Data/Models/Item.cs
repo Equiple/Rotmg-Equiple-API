@@ -12,6 +12,8 @@
 
         public string Tier { get; set; }
 
+        public string Description { get; set; }
+
         public bool Reskin { get; set; }
 
         public string Type { get; set; }

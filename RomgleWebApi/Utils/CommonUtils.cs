@@ -2,13 +2,13 @@
 {
     public static class CommonUtils
     {
-        public static double MapValue(double x, double xLeft, double xRight, double resLeft, double resRight)
+        public static double MapValue(double value, double fromLow, double fromHigh, double toLow, double toHigh)
         {
-            if (xLeft == xRight)
+            if (fromLow == fromHigh)
             {
-                return resLeft;
+                return toLow;
             }
-            return (x - xLeft) / (xRight - xLeft) * (resRight - resLeft) + resLeft;
+            return (value - fromLow) / (fromHigh - fromLow) * (toHigh - toLow) + toLow;
         }
     }
 }

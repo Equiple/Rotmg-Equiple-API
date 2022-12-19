@@ -27,8 +27,9 @@ namespace RomgleWebApi.Services.Implementations
         public async Task<GuessResult> CheckGuessAsync(string playerId, string guessId, Gamemode mode, bool reskinsExcluded)
         {
             Player player = await _playersService.GetAsync(playerId);
-            Item guess = await _itemsService.GetAsync(guessId);
             GuessResult result = new GuessResult();
+            result.Guess = await _itemsService.GetAsync(guessId);
+            
             if (player.HasActiveGame())
             {
                 if (player.CurrentGame!.Mode != mode)
@@ -52,25 +53,34 @@ namespace RomgleWebApi.Services.Implementations
                 await StartNewGameAsync(player, newItem.Id, mode, reskinsExcluded);
             }
             //TODO: Guest
-
+            Item target = await _itemsService.GetAsync(player.CurrentGame!.TargetItemId);
             player.CurrentGame!.GuessItemIds.Add(guessId);
             await _playersService.UpdateAsync(player);
-
-            if (player.CurrentGame.TargetItemId == guessId)
+            result.Tries = await GetTriesAsync(playerId);
+            result.Hints = await GetHintsAsync(player, result.Guess);
+            if (target.Id == guessId)
             {
                 await _playersService.UpdatePlayerScoreAsync(player, GameResult.Won);
+                result.TargetItem = target;
                 result.Status = GuessStatus.Guessed;
             }
             else if (player.IsOutOfTries())
             {
-                result.TargetItem = await _itemsService.GetAsync(player.CurrentGame.TargetItemId);
+                result.TargetItem = target;
                 await _playersService.UpdatePlayerScoreAsync(player, GameResult.Lost);
                 result.Status = GuessStatus.Lost;
             }
             else
             {
                 result.Status = GuessStatus.NotGuessed;
-                result.Hints = await GetHintsAsync(player, guess);
+                if (result.Hints.CountCorrect() > 3)
+                {
+                    result.Anagram = target.GenerateAnagram();
+                }
+                if(result.Hints.CountCorrect() > 4)
+                {
+                    result.Description = target.Description;
+                }
             }
             return result;
         }
@@ -141,9 +151,14 @@ namespace RomgleWebApi.Services.Implementations
             {
                 return null;
             }
+            Item item = await _itemsService.GetAsync(player.CurrentGame!.TargetItemId);
             return new GameOptions
             {
                 Mode = player.CurrentGame!.Mode,
+                Guesses = await GetGuessesAsync(playerId),
+                AllHints = await GetHintsAsync(playerId),
+                Anagram = item.GenerateAnagram(),
+                Description = item.Description,
                 ReskinsExcluded = player.CurrentGame!.ReskingExcluded
             };
         }
@@ -152,7 +167,6 @@ namespace RomgleWebApi.Services.Implementations
         {
             Player player = await _playersService.GetAsync(playerId);
             await _playersService.UpdatePlayerScoreAsync(player, GameResult.Lost);
-            await _playersService.UpdateAsync(player);
         }
 
         #endregion
@@ -190,7 +204,7 @@ namespace RomgleWebApi.Services.Implementations
                 XpBonus = GetHint(item => item.XpBonus),
                 Feedpower = GetHint(item => item.Feedpower),
                 DominantColor = GetColorHint(item => item.DominantColor),
-                ColorClass = GetColorHint(item => item.DominantColor)
+                ColorClass = GetClassBasedColorHint(item => item.ColorClass)
             };
             return hints;
 
@@ -216,47 +230,48 @@ namespace RomgleWebApi.Services.Implementations
                 return guessProperty.Equals(targetProperty) ? Hint.Correct : Hint.Wrong;
             }
 
-            string GetOldColorHint(Func<Item, string> hintProperty)
-            {
-                //Max distance is mean of all item colour distances
-                const double maxDistance = 117.0;
-                string guessProperty = hintProperty(guess);
-                string targetProperty = hintProperty(target);
-                Color targetColor = Color.FromName(targetProperty);
-                Color guessColor = Color.FromName(guessProperty);
-                Color greenColor = ColorUtils.defaultGreen;
-                Color redColor = ColorUtils.defaultRed;
-                double distance = targetColor.GetRGBDistanceFrom(guessColor);
-                double distancePercent = CommonUtils
-                    .MapValue(x: distance, xLeft: 0, xRight: maxDistance*2, resLeft: 0, resRight: 1);
-                if (distancePercent > 1)
-                {
-                    distancePercent = 1;
-                }
-                double[] vector = new double[] {
-                    (redColor.R - greenColor.R) * distancePercent,
-                    (redColor.G - greenColor.G) * distancePercent,
-                    (redColor.B - greenColor.B) * distancePercent
-                };
-                Color result = Color.FromArgb(
-                    alpha: 255,
-                    red: (int)(greenColor.R + vector[0]),
-                    green: (int)(greenColor.G + vector[1]),
-                    blue: (int)(greenColor.B + vector[2]));
-                string colorHex = ColorTranslator.ToHtml(result);
-                return colorHex;
-            }
-
             string GetColorHint(Func<Item, string> hintProperty)
             {
                 string guessProperty = hintProperty(guess);
                 string targetProperty = hintProperty(target);
                 Color targetColor = Color.FromName(targetProperty);
                 Color guessColor = Color.FromName(guessProperty);
+                Color result = GetColorHintGradient(targetColor, guessColor);
+                return ColorTranslator.ToHtml(result);
+            }
+
+            Color GetColorHintOld(Color targetColor, Color guessColor)
+            {
+                //Max distance is mean of all item colour distances
+                const double maxDistance = 117.0;
+                Color greenColor = ColorUtils.defaultGreen;
+                Color redColor = ColorUtils.defaultRed;
+                double distance = targetColor.GetRGBDistanceFrom(guessColor);
+                double distancePercent = CommonUtils
+                    .MapValue(value: distance, fromLow: 0, fromHigh: maxDistance*2, toLow: 0, toHigh: 1);
+                if (distancePercent > 1)
+                {
+                    distancePercent = 1;
+                }
+                double[] vector = new double[] {
+                    (redColor.R - greenColor.R) * distancePercent,
+                    (redColor.G - greenColor.G) * distancePercent,
+                    (redColor.B - greenColor.B) * distancePercent
+                };
+                Color result = Color.FromArgb(
+                    alpha: 255,
+                    red: (int)(greenColor.R + vector[0]),
+                    green: (int)(greenColor.G + vector[1]),
+                    blue: (int)(greenColor.B + vector[2]));
+                return result;
+            }
+
+            Color GetColorHintLAB(Color targetColor, Color guessColor)
+            {
                 double distance = targetColor.GetDistanceFrom(guessColor);
                 double defaultDistance = ColorUtils.GetDefaultGreenRedCIELabDistance();
                 double distancePercent = CommonUtils
-                    .MapValue(x: distance, xLeft: 0, xRight: defaultDistance, resLeft: 0, resRight: 1);
+                    .MapValue(value: distance, fromLow: 0, fromHigh: defaultDistance, toLow: 0, toHigh: 1);
                 if (distancePercent > 1)
                 {
                     distancePercent = 1;
@@ -273,8 +288,34 @@ namespace RomgleWebApi.Services.Implementations
                     red: (int)(greenColor.R + vector[0]),
                     green: (int)(greenColor.G + vector[1]),
                     blue: (int)(greenColor.B + vector[2]));
-                string colorHex = ColorTranslator.ToHtml(result);
-                return colorHex;
+                return result;
+            }
+
+            Color GetColorHintGradient(Color targetColor, Color guessColor)
+            {
+                double distance = targetColor.GetDistanceFrom(guessColor);
+                double defaultDistance = ColorUtils.GetDefaultGreenRedCIELabDistance();
+                int distancePercent = (int) Math.Round(CommonUtils
+                    .MapValue(value: distance, fromLow: 0, fromHigh: defaultDistance, 
+                        toLow: 0, toHigh: ColorUtils.differenceGradientLAB.Count));
+                Color result = ColorUtils.differenceGradientLAB[distancePercent];
+                return result;
+            }
+
+            string GetClassBasedColorHint(Func<Item, string> hintProperty)
+            {
+                string guessProperty = hintProperty(guess);
+                string targetProperty = hintProperty(target);
+                Color targetColor = Color.FromName(targetProperty);
+                Color guessColor = Color.FromName(guessProperty);
+                int targetIndex = ColorUtils.rainbowSmall.IndexOf(targetColor);
+                int guessIndex = ColorUtils.rainbowSmall.IndexOf(guessColor);
+                int distance = Math.Abs(targetIndex - guessIndex);
+                int newIndex = (int) Math.Round(CommonUtils
+                    .MapValue(value: distance, fromLow: 0, fromHigh: ColorUtils.rainbowSmall.Count, 
+                        toLow: 0, toHigh: ColorUtils.differenceGradientRGBsmall.Count));
+                Color result = ColorUtils.differenceGradientRGBsmall[newIndex];
+                return ColorTranslator.ToHtml(result);
             }
 
             double GetMaxDistance(IEnumerable<Item> items)

@@ -4,6 +4,8 @@ namespace RomgleWebApi.Extensions
 {
     public static class StringExtensions
     {
+        private static Random random = new Random();
+
         /// <summary>
         /// Removes everything from the string starting from the first space.
         /// </summary>
@@ -102,6 +104,51 @@ namespace RomgleWebApi.Extensions
             word = word.Replace("ies", "y");
             word = word.Replace("s", "");
             return word;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="givenString"></param>
+        /// <returns></returns>
+        public static string RemoveSymbols(this string givenString, string symbols)
+        {
+            string str = "";
+            foreach(char letter in symbols)
+            {
+                str = givenString.Replace(letter + "", "");
+            }
+            return str;
+        }
+
+        /// <summary>
+        /// Shuffles string
+        /// </summary>
+        public static string Shuffle(this string str)
+        {
+            char[] array = str.ToCharArray();
+            int counter = array.Length;
+            while (counter > 1)
+            {
+                counter--;
+                int k = random.Next(counter + 1);
+                var value = array[k];
+                array[k] = array[counter];
+                array[counter] = value;
+            }
+            return new string(array);
+        }
+
+        public static bool Contains(this string str, List<string> list)
+        {
+            foreach (string line in list)
+            {
+                if (str.Contains(line))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }

@@ -4,19 +4,27 @@ namespace RomgleWebApi.Utils
 {
     public static class StringUtils
     {
-        public static readonly List<string> DefaultNames = GetListOfDefaultNames();
+        public static readonly List<string> DefaultNames = 
+            GetListFromFile(@"E:\Projects\.other stuff\RomgleWebApi\RomgleWebApi\Assets\DefaultNames.txt");
+
+        public static readonly List<string> IgnoredWords = 
+            GetListFromFile(@"E:\Projects\.other stuff\RomgleWebApi\RomgleWebApi\Assets\IgnoredWords.txt");
 
         /// <summary>
-        /// Gets a list of default names from a file.
+        /// Gets a list from specified text document.
         /// </summary>
-        public static List<string> GetListOfDefaultNames()
+        public static List<string> GetListFromFile(string path)
         {
-            List<string> names = new List<string>();
-            foreach (string line in File.ReadLines(@"E:\Projects\.other stuff\RomgleWebApi\RomgleWebApi\Assets\DefaultNames.txt"))
+            if (!path.Contains(".txt"))
             {
-                names.Add(line);
+                throw new Exception("Given file is not a text document.");
             }
-            return names;
+            List<string> list = new List<string>();
+            foreach (string line in File.ReadLines(path))
+            {
+                list.Add(line);
+            }
+            return list;
         }
 
         /// <summary>
