@@ -22,22 +22,16 @@ using RomgleWebApi.Services.ServiceCollectionExtensions;
 using RomgleWebApi.Utils;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json.Serialization;
+using RomgleWebApi.Jobs;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-var migrationOptions = new MongoMigrationOptions
-{
-    MigrationStrategy = new MigrateMongoMigrationStrategy(),
-    BackupStrategy = new CollectionMongoBackupStrategy(),
-};
-
 builder.Services.AddHangfire(configuration => configuration
-        .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
-        .UseSimpleAssemblyNameTypeSerializer()
-        .UseRecommendedSerializerSettings()
-        );
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings());
 
 builder.Services.AddHangfireServer();
 
@@ -108,7 +102,7 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-StaticRegistrationHelper.Scope(() =>
+StaticRegistrationHelper.ProdOnce("Startup", () =>
 {
     //mongo
     ConventionPack mongoConventions = new ConventionPack();
@@ -117,6 +111,11 @@ StaticRegistrationHelper.Scope(() =>
     BsonClassMapInitializer.Initialize();
 
     //hangfire
+    var migrationOptions = new MongoMigrationOptions
+    {
+        MigrationStrategy = new MigrateMongoMigrationStrategy(),
+        BackupStrategy = new CollectionMongoBackupStrategy(),
+    };
     GlobalConfiguration.Configuration.UseMongoStorage(
         builder.Configuration.GetSection("Hangfire")["ConnectionString"],
         new MongoStorageOptions

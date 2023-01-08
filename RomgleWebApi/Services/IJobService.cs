@@ -2,6 +2,8 @@
 {
     public interface IJobService
     {
+        Task InvalidateExpiredDailyGamesAsync();
+
         Task RemoveExpiredTokensAndGuestsAsync();
     }
 }

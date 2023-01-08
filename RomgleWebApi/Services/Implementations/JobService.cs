@@ -12,6 +12,11 @@
             _refreshTokenService = refreshTokenService;
         }
 
+        public Task InvalidateExpiredDailyGamesAsync()
+        {
+            return _playerService.InvalidateExpiredDailyGamesAsync();
+        }
+
         public async Task RemoveExpiredTokensAndGuestsAsync()
         {
             await _refreshTokenService.RemoveExpiredTokensAsync();
