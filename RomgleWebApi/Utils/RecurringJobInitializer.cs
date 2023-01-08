@@ -13,11 +13,11 @@ namespace RomgleWebApi.Utils
         /// </summary>
         public static void Initialize()
         {
-            RecurringJob.AddOrUpdate<IPlayerService>(recurringJobId: "InvalidateExpiredDailyGames", 
+            RecurringJob.AddOrUpdate<IPlayerService>("InvalidateExpiredDailyGames", 
                 playerService => playerService.InvalidateExpiredDailyGamesAsync(),
                 Cron.Daily,
                 timeZone: TimeZoneInfo.Utc);
-            RecurringJob.AddOrUpdate<IJobService>(recurringJobId: "RemoveExpiredTokensAndGuests",
+            RecurringJob.AddOrUpdate<IJobService>("RemoveExpiredTokensAndGuests",
                 jobService => jobService.RemoveExpiredTokensAndGuestsAsync(),
                 Cron.Weekly,
                 timeZone: TimeZoneInfo.Utc);

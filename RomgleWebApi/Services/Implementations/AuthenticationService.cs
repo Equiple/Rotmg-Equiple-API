@@ -2,7 +2,7 @@
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 using NUnit.Framework.Internal;
-using RomgleWebApi.Authentication.AuthenticationValidators;
+using RomgleWebApi.Authentication.Validators;
 using RomgleWebApi.DAL;
 using RomgleWebApi.Data;
 using RomgleWebApi.Data.Auth;
@@ -37,11 +37,7 @@ namespace RomgleWebApi.Services.Implementations
         {
             Identity identity = new Identity
             {
-                Provider = IdentityProvider.Self,
-                Details = new IdentityDetails
-                {
-                    Name = StringUtils.GetRandomDefaultName()
-                }
+                Provider = IdentityProvider.Self
             };
             bool idExists;
             do
@@ -78,12 +74,12 @@ namespace RomgleWebApi.Services.Implementations
             string actualDeviceId;
             if (string.IsNullOrWhiteSpace(playerId) || string.IsNullOrWhiteSpace(deviceId))
             {
-                (player, Device device) = await AuthenticateAsync(identity, permit.DeviceId);
+                (player, Device device) = await AuthenticateAsync(identity, validationResult.Name, permit.DeviceId);
                 actualDeviceId = device.Id;
             }
             else
             {
-                player = await AddIdentity(playerId, identity, deviceId);
+                player = await AddIdentity(playerId, identity, validationResult.Name, deviceId);
                 actualDeviceId = deviceId;
             }
 
@@ -130,7 +126,7 @@ namespace RomgleWebApi.Services.Implementations
             await _playerService.RefreshPersonalKeyAsync(player.Id, deviceId);
         }
 
-        private async Task<(Player, Device)> AuthenticateAsync(Identity identity, string? deviceId)
+        private async Task<(Player, Device)> AuthenticateAsync(Identity identity, string? name, string? deviceId)
         {
             PlayerByIdentity? playerByIdentity = await _playerService.GetByIdentityAsync(identity);
             Player player;
@@ -150,16 +146,24 @@ namespace RomgleWebApi.Services.Implementations
             }
             else
             {
-                NewPlayer newPlayer = await _playerService.CreateNewAsync(identity);
+                NewPlayer newPlayer = await _playerService.CreateNewAsync(identity, name: name);
                 player = newPlayer.Player;
                 device = newPlayer.Device;
             }
             return (player, device);
         }
 
-        private async Task<Player> AddIdentity(string playerId, Identity identity, string deviceId)
+        private async Task<Player> AddIdentity(string playerId, Identity identity, string? name, string deviceId)
         {
             Player player = await _playerService.GetAsync(playerId);
+            if (player.Identities.Any(identity => identity.Provider == IdentityProvider.Self))
+            {
+                player.Identities.Clear();
+                if (!string.IsNullOrWhiteSpace(name))
+                {
+                    player.Name = name;
+                }
+            }
             player.Identities.Add(identity);
             await _playerService.UpdateAsync(player);
             await _playerService.RefreshPersonalKeyAsync(player.Id, deviceId);

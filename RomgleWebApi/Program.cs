@@ -6,8 +6,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.OpenApi.Models;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Conventions;
-using RomgleWebApi.Authentication.AuthenticationHandlers;
-using RomgleWebApi.Authentication.AuthenticationValidators;
+using RomgleWebApi.Authentication.Handlers;
+using RomgleWebApi.Authentication.Validators;
 using RomgleWebApi.Authentication.Options;
 using RomgleWebApi.Authorization.Handlers;
 using RomgleWebApi.Authorization.Requirements;
@@ -38,14 +38,6 @@ builder.Services.AddHangfire(configuration => configuration
         .UseSimpleAssemblyNameTypeSerializer()
         .UseRecommendedSerializerSettings()
         );
-
-GlobalConfiguration.Configuration.UseMongoStorage(
-    builder.Configuration.GetSection("Hangfire")["ConnectionString"],
-    new MongoStorageOptions 
-    { 
-        MigrationOptions = migrationOptions,
-        CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.TailNotificationsCollection
-    });
 
 builder.Services.AddHangfireServer();
 
@@ -95,7 +87,8 @@ builder.Services.Configure<TokenAuthorizationSettings>(
     builder.Configuration.GetSection("TokenAuthorization"));
 
 builder.Services.AddAuthenticationService(
-    new SelfAuthenticationValidator());
+    new SelfAuthenticationValidator(),
+    new GoogleAuthenticationValidator());
 builder.Services.AddSingleton<IDataCollectionProvider, DefaultMongoDataCollectionProvider>();
 builder.Services.AddSingleton<IAccessTokenService, JWTService>();
 builder.Services.AddSingleton<IRefreshTokenService, RefreshTokenService>();
@@ -117,11 +110,21 @@ builder.Services.AddSwaggerGen(options =>
 
 StaticRegistrationHelper.Scope(() =>
 {
+    //mongo
     ConventionPack mongoConventions = new ConventionPack();
     mongoConventions.Add(new EnumRepresentationConvention(BsonType.String));
     ConventionRegistry.Register("MongoDbConvention", mongoConventions, _ => true);
-    RecurringJobInitializer.Initialize();
     BsonClassMapInitializer.Initialize();
+
+    //hangfire
+    GlobalConfiguration.Configuration.UseMongoStorage(
+        builder.Configuration.GetSection("Hangfire")["ConnectionString"],
+        new MongoStorageOptions
+        {
+            MigrationOptions = migrationOptions,
+            CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.TailNotificationsCollection
+        });
+    RecurringJobInitializer.Initialize();
 });
 
 var app = builder.Build();

@@ -1,10 +1,9 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using RomgleWebApi.Authentication.AuthenticationValidators;
+using RomgleWebApi.Authentication.Validators;
 using RomgleWebApi.Data.Auth;
 using RomgleWebApi.Data.Models;
 using RomgleWebApi.Data.Models.Auth;
-using RomgleWebApi.Extensions;
 using RomgleWebApi.Services;
 using RomgleWebApi.Services.ServiceCollectionExtensions;
 using RotmgleWebApiTests.Utils;
@@ -88,7 +87,7 @@ namespace RotmgleWebApiTests.IntegrationTests
         {
             //Arrange
             (IAuthenticationValidator validator, AuthenticationPermit permit) =
-                ArrangeAuthenticationValidator(identity => AuthenticationValidatorResult.Valid(identity));
+                ArrangeAuthenticationValidator(isValid: true);
             ArrangeServices(services =>
             {
                 services.AddAuthenticationService(validator);
@@ -107,7 +106,7 @@ namespace RotmgleWebApiTests.IntegrationTests
         {
             //Arrange
             (IAuthenticationValidator authenValidator, AuthenticationPermit permit) =
-                ArrangeAuthenticationValidator(_ => AuthenticationValidatorResult.Invalid);
+                ArrangeAuthenticationValidator(isValid: false);
             ArrangeServices(services =>
             {
                 services.AddAuthenticationService(authenValidator);
@@ -144,7 +143,7 @@ namespace RotmgleWebApiTests.IntegrationTests
         {
             //Arrange
             (IAuthenticationValidator authenValidator, AuthenticationPermit permit) =
-                ArrangeAuthenticationValidator(identity => AuthenticationValidatorResult.Valid(identity));
+                ArrangeAuthenticationValidator(isValid: true);
             ArrangeServices(services =>
             {
                 services.AddAuthenticationService(authenValidator);
@@ -181,7 +180,7 @@ namespace RotmgleWebApiTests.IntegrationTests
         {
             //Arrange
             (IAuthenticationValidator authenValidator, AuthenticationPermit permit) =
-                ArrangeAuthenticationValidator(identity => AuthenticationValidatorResult.Valid(identity));
+                ArrangeAuthenticationValidator(isValid: true);
             ArrangeServices(services =>
             {
                 services.AddAuthenticationService(authenValidator);
@@ -233,14 +232,14 @@ namespace RotmgleWebApiTests.IntegrationTests
             string googleIdentityId = "TestGoogleId";
             (IAuthenticationValidator googleValidator, AuthenticationPermit googlePermit) =
                 ArrangeAuthenticationValidator(
-                    identity => AuthenticationValidatorResult.Valid(identity),
+                    isValid: true,
                     identityProvider: IdentityProvider.Google,
                     identityId: googleIdentityId);
 
             string discordIdentityId = "TestDiscordId";
             (IAuthenticationValidator discordValidator, AuthenticationPermit discordPermit) =
                 ArrangeAuthenticationValidator(
-                    identity => AuthenticationValidatorResult.Valid(identity),
+                    isValid: true,
                     identityProvider: IdentityProvider.Discord,
                     identityId: discordIdentityId);
 
@@ -332,7 +331,7 @@ namespace RotmgleWebApiTests.IntegrationTests
         }
 
         private static (IAuthenticationValidator, AuthenticationPermit) ArrangeAuthenticationValidator(
-            Func<Identity, AuthenticationValidatorResult> result,
+            bool isValid,
             IdentityProvider identityProvider = IdentityProvider.Google,
             string identityId = "TestIdentityId")
         {
@@ -341,10 +340,15 @@ namespace RotmgleWebApiTests.IntegrationTests
                 Provider = identityProvider,
                 IdToken = "ValidIdToken"
             };
-            Identity identity = permit.CreateIdentity(identityId, new IdentityDetails
+            Identity identity = new Identity
             {
-                Name = "TestName"
-            });
+                Provider = identityProvider,
+                Id = identityId
+            };
+            const string name = "TestName";
+            AuthenticationValidatorResult result = isValid
+                ? AuthenticationValidatorResult.Valid(identity, name)
+                : AuthenticationValidatorResult.Invalid;
             Mock<IAuthenticationValidator> validatorMock = new Mock<IAuthenticationValidator>();
             validatorMock
                 .SetupGet(validator => validator.IdentityProvider)
@@ -352,7 +356,7 @@ namespace RotmgleWebApiTests.IntegrationTests
             validatorMock
                 .Setup(validator => validator.ValidateAsync(It.Is<AuthenticationPermit>(
                     p => p.IdToken == permit.IdToken)))
-                .Returns(Task.FromResult(result.Invoke(identity)));
+                .Returns(Task.FromResult(result));
 
             return (validatorMock.Object, permit);
         }

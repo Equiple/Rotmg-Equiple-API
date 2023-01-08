@@ -8,6 +8,7 @@ namespace RomgleWebApi.Utils
     {
         public static NewPlayer Create(
             Identity identity,
+            string name,
             string deviceId,
             string personalKey,
             string personalKeyEncoding = "ASCII")
@@ -18,7 +19,7 @@ namespace RomgleWebApi.Utils
                 personalKeyEncoding: personalKeyEncoding);
             Player player = new Player
             {
-                Name = identity.Details.Name,
+                Name = name,
                 RegistrationDate = DateTime.UtcNow,
                 LastSeen = DateTime.UtcNow,
                 Identities = new List<Identity> { identity },

@@ -1,4 +1,4 @@
-﻿using RomgleWebApi.Authentication.AuthenticationValidators;
+﻿using RomgleWebApi.Authentication.Validators;
 using RomgleWebApi.Data.Settings;
 using RomgleWebApi.Services.Implementations;
 
@@ -12,6 +12,7 @@ namespace RomgleWebApi.Services.ServiceCollectionExtensions
         {
             services.Configure<AuthenticationServiceSettings>(settings =>
             {
+                settings.AuthenticationValidators.Clear();
                 settings.AuthenticationValidators.AddRange(authenticationValidators);
             });
             return services.AddSingleton<IAuthenticationService, AuthenticationService>();

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Options;
 using RomgleWebApi.Authentication.Options;
 using RomgleWebApi.Services;
@@ -6,7 +7,7 @@ using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Text.RegularExpressions;
 
-namespace RomgleWebApi.Authentication.AuthenticationHandlers
+namespace RomgleWebApi.Authentication.Handlers
 {
     public class TokenAuthenticationHandler : AuthenticationHandler<TokenAuthenticationOptions>
     {

@@ -15,7 +15,7 @@ namespace RomgleWebApi.Services
 
         Task<PlayerByIdentity?> GetByIdentityAsync(Identity identity);
 
-        Task<NewPlayer> CreateNewAsync(Identity identity);
+        Task<NewPlayer> CreateNewAsync(Identity identity, string? name = null);
 
         Task<Device> CreateNewDeviceAsync(string playerId);
 
