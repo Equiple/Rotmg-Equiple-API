@@ -12,6 +12,7 @@ namespace RomgleWebApi.Data.Models.BsonClassMaps
             BsonClassMapUtils.RegisterIdOnly<Player>(player => player.Id);
             BsonClassMapUtils.RegisterIdOnly<Item>(item => item.Id);
             BsonClassMapUtils.RegisterIdOnly<RefreshToken>(token => token.Id);
+            BsonClassMapUtils.RegisterIdOnly<Complaint>(complaint => complaint.Id);
         }
     }
 }

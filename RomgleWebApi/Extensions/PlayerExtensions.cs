@@ -85,6 +85,7 @@ namespace RomgleWebApi.Extensions
         public static void Randomize(this Player player)
         {
             player.Name = StringUtils.GenerateRandomNameLookingString();
+            player.Role = "user";
             player.EndedGames = GameUtils.GenerateListOfRandomGames();
             player.CurrentGame = GameUtils.GenerateRandomGame();
             player.DailyStats.Randomize();

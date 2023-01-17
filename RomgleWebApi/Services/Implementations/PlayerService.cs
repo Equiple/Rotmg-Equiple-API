@@ -339,6 +339,7 @@ namespace RomgleWebApi.Services.Implementations
         {
             IReadOnlyList<Player> player = await CreateKnockOffPlayers(1);
             player[0].Name = "admin";
+            player[0].Role = "admin";
             await UpdateAsync(player[0]);
         }
 

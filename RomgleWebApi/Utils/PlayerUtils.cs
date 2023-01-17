@@ -19,6 +19,7 @@ namespace RomgleWebApi.Utils
             Player player = new Player
             {
                 Name = identity.Details.Name,
+                Role = "user",
                 RegistrationDate = DateTime.UtcNow,
                 LastSeen = DateTime.UtcNow,
                 Identities = new List<Identity> { identity },

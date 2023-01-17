@@ -104,6 +104,7 @@ builder.Services.AddSingleton<IDailyService, DailyService>();
 builder.Services.AddSingleton<IPlayerService, PlayerService>();
 builder.Services.AddSingleton<IGameService, GameService>();
 builder.Services.AddSingleton<IJobService, JobService>();
+builder.Services.AddSingleton<IComplaintService, ComplaintService>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddSwaggerGen(options =>

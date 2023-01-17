@@ -3,6 +3,13 @@ using RomgleWebApi.Data.Models;
 using RomgleWebApi.Extensions;
 using RomgleWebApi.Utils;
 using System.Drawing;
+using System.Net.Mail;
+using System.Net;
+using MongoDB.Driver;
+using MongoDB.Driver.Linq;
+using Microsoft.Extensions.Options;
+using RomgleWebApi.DAL;
+using RomgleWebApi.Data.Settings;
 
 namespace RomgleWebApi.Services.Implementations
 {
@@ -11,15 +18,24 @@ namespace RomgleWebApi.Services.Implementations
         private readonly IItemService _itemsService;
         private readonly IDailyService _dailiesService;
         private readonly IPlayerService _playersService;
+        private readonly IConfiguration _configuration;
+        private readonly IMongoCollection<Complaint> _complaintsCollection;
 
         public GameService(
+            IOptions<RotmgleDatabaseSettings> rotmgleDatabaseSettings,
+            IDataCollectionProvider dataCollectionProvider,
             IItemService itemsService,
             IDailyService dailiesService,
-            IPlayerService playersService)
+            IPlayerService playersService,
+            IConfiguration config)
         {
             _itemsService = itemsService;
             _dailiesService = dailiesService;
             _playersService = playersService;
+            _configuration = config;
+            _complaintsCollection = dataCollectionProvider
+                .GetDataCollection<Complaint>(rotmgleDatabaseSettings.Value.ComplaintCollectionName)
+                .AsMongo();
         }
 
         #region public methods
@@ -168,6 +184,39 @@ namespace RomgleWebApi.Services.Implementations
             Player player = await _playersService.GetAsync(playerId);
             await _playersService.UpdatePlayerScoreAsync(player, GameResult.Lost);
         }
+
+        //public async Task<string> SendReportMailAsync(string author, string complaint)
+        //{
+        //    ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+        //    MailAddress to = new MailAddress(_configuration.GetSection("SmtpServer")["Mail"]);
+        //    MailMessage message = new MailMessage(to, to);
+        //    string subject = "";
+        //    if (complaint.Length < 20)
+        //    {
+        //        subject = complaint;
+        //    }
+        //    else subject = complaint.Substring(0, 19);
+        //    message.Subject = $"{subject}";
+        //    message.Body = $"{complaint}\n\nSent by {author}.";
+        //    SmtpClient client = new SmtpClient(_configuration.GetSection("SmtpServer")["RelayAdress"], 
+        //        _configuration.GetSection("SmtpServer")["TlsPort"].ParseInt() ?? 0)
+        //    {
+        //        UseDefaultCredentials = false,
+        //        Credentials = new NetworkCredential(_configuration.GetSection("SmtpServer")["Mail"], 
+        //            _configuration.GetSection("SmtpServer")["Pass"]),
+        //        TargetName = $"STARTTLS/{_configuration.GetSection("SmtpServer")["RelayAdress"]}",
+        //        EnableSsl = true
+        //    };
+        //    try
+        //    {
+        //        client.Send(message);
+        //    }
+        //    catch (SmtpException ex)
+        //    {
+        //        Console.WriteLine(ex.ToString());
+        //    }
+        //    return "success";
+        //}
 
         #endregion
 

@@ -13,5 +13,7 @@
         public string DailyCollectionName { get; set; } = null!;
 
         public string RefreshTokenCollectionName { get; set; } = null!;
+
+        public string ComplaintCollectionName { get; set; } = null!;
     }
 }
