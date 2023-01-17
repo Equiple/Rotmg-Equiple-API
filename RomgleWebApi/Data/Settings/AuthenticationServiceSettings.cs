@@ -1,4 +1,4 @@
-﻿using RomgleWebApi.Authentication.AuthenticationValidators;
+﻿using RomgleWebApi.Authentication.Validators;
 
 namespace RomgleWebApi.Data.Settings
 {

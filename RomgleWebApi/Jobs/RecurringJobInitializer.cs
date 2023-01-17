@@ -1,8 +1,7 @@
 ﻿using Hangfire;
-using Hangfire.Common;
 using RomgleWebApi.Services;
 
-namespace RomgleWebApi.Utils
+namespace RomgleWebApi.Jobs
 {
     public static class RecurringJobInitializer
     {
@@ -13,11 +12,11 @@ namespace RomgleWebApi.Utils
         /// </summary>
         public static void Initialize()
         {
-            RecurringJob.AddOrUpdate<IPlayerService>(recurringJobId: "InvalidateExpiredDailyGames", 
-                playerService => playerService.InvalidateExpiredDailyGamesAsync(),
+            RecurringJob.AddOrUpdate<IJobService>("InvalidateExpiredDailyGames",
+                jobService => jobService.InvalidateExpiredDailyGamesAsync(),
                 Cron.Daily,
                 timeZone: TimeZoneInfo.Utc);
-            RecurringJob.AddOrUpdate<IJobService>(recurringJobId: "RemoveExpiredTokensAndGuests",
+            RecurringJob.AddOrUpdate<IJobService>("RemoveExpiredTokensAndGuests",
                 jobService => jobService.RemoveExpiredTokensAndGuestsAsync(),
                 Cron.Weekly,
                 timeZone: TimeZoneInfo.Utc);

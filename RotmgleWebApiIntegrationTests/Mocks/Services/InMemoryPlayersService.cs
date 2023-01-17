@@ -46,7 +46,7 @@ namespace RotmgleWebApiTests.Mocks.Services
                     && playerIdentity.Id == identity.Id));
         }
 
-        public async Task<NewPlayer> CreateNewAsync(Identity identity)
+        public async Task<NewPlayer> CreateNewAsync(Identity identity, string? name = null)
         {
             PlayerByIdentity? existingPlayer = await GetByIdentityAsync(identity);
             if (existingPlayer.HasValue)
@@ -56,6 +56,7 @@ namespace RotmgleWebApiTests.Mocks.Services
 
             NewPlayer newPlayer = PlayerUtils.Create(
                 identity,
+                name ?? "TestName",
                 DeviceUtils.GenerateDeviceId(),
                 SecurityUtils.GenerateBase64SecurityKey());
             newPlayer.Player.Id = Guid.NewGuid().ToString();

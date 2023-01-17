@@ -5,7 +5,5 @@
         public IdentityProvider Provider { get; set; }
 
         public string Id { get; set; }
-
-        public IdentityDetails Details { get; set; }
     }
 }

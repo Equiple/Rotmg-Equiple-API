@@ -1,7 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc.Testing;
+﻿using Hangfire;
+using Hangfire.MemoryStorage;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using RomgleWebApi.Jobs;
 using RomgleWebApi.Services;
+using RomgleWebApi.Utils;
 using RotmgleWebApiTests.Mocks.Services;
 
 namespace RotmgleWebApiTests.IntegrationTests
@@ -21,6 +25,7 @@ namespace RotmgleWebApiTests.IntegrationTests
         [SetUp]
         public void BaseSetup()
         {
+            StaticRegistrationHelper.SetTesting();
             _playersService.SetInitialPlayers();
             _refreshTokenService.SetInitialRefreshTokens();
             Setup();
@@ -70,6 +75,9 @@ namespace RotmgleWebApiTests.IntegrationTests
                 {
                     services.AddSingleton<IPlayerService>(_playersService);
                     services.AddSingleton<IRefreshTokenService>(_refreshTokenService);
+
+                    GlobalConfiguration.Configuration.UseMemoryStorage();
+                    RecurringJobInitializer.Initialize();
 
                     foreach (Action<IServiceCollection> configuration in configurations)
                     {

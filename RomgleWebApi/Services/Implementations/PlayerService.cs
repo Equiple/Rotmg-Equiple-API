@@ -79,7 +79,7 @@ namespace RomgleWebApi.Services.Implementations
             return result;
         }
 
-        public async Task<NewPlayer> CreateNewAsync(Identity identity)
+        public async Task<NewPlayer> CreateNewAsync(Identity identity, string? name = null)
         {
             PlayerByIdentity? existingPlayer = await GetByIdentityAsync(identity);
             if (existingPlayer.HasValue)
@@ -87,9 +87,10 @@ namespace RomgleWebApi.Services.Implementations
                 throw new Exception($"Player with given identity {identity.Provider}:{identity.Id} already exists");
             }
 
+            name ??= StringUtils.GetRandomDefaultName();
             string deviceId = await GenerateUniqueDeviceId();
             string personalKey = await GenerateUniquePersonalKey();
-            NewPlayer newPlayer = PlayerUtils.Create(identity, deviceId, personalKey);
+            NewPlayer newPlayer = PlayerUtils.Create(identity, name, deviceId, personalKey);
             await _playersCollection.InsertOneAsync(newPlayer.Player);
 
             return newPlayer;
@@ -320,13 +321,11 @@ namespace RomgleWebApi.Services.Implementations
                 Identity identity = new Identity
                 {
                     Provider = IdentityProvider.Self,
-                    Id = "knock_off",
-                    Details = new IdentityDetails
-                    {
-                        Name = StringUtils.GetRandomDefaultName()
-                    }
+                    Id = "knock_off"
                 };
-                NewPlayer newPlayer = await CreateNewAsync(identity);
+                NewPlayer newPlayer = await CreateNewAsync(
+                    identity,
+                    name: StringUtils.GenerateRandomNameLookingString());
                 Player player = newPlayer.Player;
                 player.Randomize();
                 await UpdateAsync(player);
