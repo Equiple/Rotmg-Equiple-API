@@ -83,8 +83,12 @@ namespace RomgleWebApi.Extensions
         /// <summary>
         /// 
         /// </summary>
-        public static string GenerateAnagram(this Item item) 
+        public static string GenerateAnagramIfEligible(this Item item, int hintsCount) 
         {
+            if(hintsCount < 3)
+            {
+                return "???";
+            }
             string name = item.Name
                 .RemoveSymbols(",.`()-_:;\"!?'")
                 .ToLower();
@@ -107,6 +111,15 @@ namespace RomgleWebApi.Extensions
                 }
             }
             return anagram;
+        }
+
+        public static string GetDescriptionIfEligible(this Item item, int hintsCount)
+        {
+            if (hintsCount < 4)
+            {
+                return "???";
+            }
+            else return item.Description;
         }
 
         #endregion public methods

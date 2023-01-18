@@ -6,7 +6,7 @@
 
         public Hint Type { get; set; }
 
-        public Hint NumberOfShots { get; set; }
+        //public Hint NumberOfShots { get; set; }
 
         public Hint XpBonus { get; set; }
 

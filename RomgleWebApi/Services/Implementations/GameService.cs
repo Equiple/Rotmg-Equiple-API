@@ -88,15 +88,10 @@ namespace RomgleWebApi.Services.Implementations
             }
             else
             {
+                int hintsCount = result.Hints.CountCorrect();
                 result.Status = GuessStatus.NotGuessed;
-                if (result.Hints.CountCorrect() > 3)
-                {
-                    result.Anagram = target.GenerateAnagram();
-                }
-                if(result.Hints.CountCorrect() > 4)
-                {
-                    result.Description = target.Description;
-                }
+                result.Anagram = target.GenerateAnagramIfEligible(hintsCount);
+                result.Description = target.GetDescriptionIfEligible(hintsCount);
             }
             return result;
         }
@@ -168,13 +163,15 @@ namespace RomgleWebApi.Services.Implementations
                 return null;
             }
             Item item = await _itemsService.GetAsync(player.CurrentGame!.TargetItemId);
+            IReadOnlyList<Hints> allHints = await GetHintsAsync(playerId);
+            int hintsCount = allHints.CountCorrect();
             return new GameOptions
             {
                 Mode = player.CurrentGame!.Mode,
                 Guesses = await GetGuessesAsync(playerId),
-                AllHints = await GetHintsAsync(playerId),
-                Anagram = item.GenerateAnagram(),
-                Description = item.Description,
+                AllHints = allHints,
+                Anagram = item.GenerateAnagramIfEligible(hintsCount),
+                Description = item.GetDescriptionIfEligible(hintsCount),
                 ReskinsExcluded = player.CurrentGame!.ReskingExcluded
             };
         }
@@ -249,7 +246,6 @@ namespace RomgleWebApi.Services.Implementations
             {
                 Tier = GetBinaryHint(item => item.Tier + item.Reskin),
                 Type = GetBinaryHint(item => item.Type),
-                NumberOfShots = Hint.Correct,
                 XpBonus = GetHint(item => item.XpBonus),
                 Feedpower = GetHint(item => item.Feedpower),
                 DominantColor = GetColorHint(item => item.DominantColor),

@@ -28,7 +28,7 @@ namespace RomgleWebApi.Extensions
             {
                 count++;
             }
-            if (hints.Tier == Hint.Correct)
+            if (hints.Feedpower == Hint.Correct)
             {
                 count++;
             }
@@ -37,6 +37,20 @@ namespace RomgleWebApi.Extensions
                 count++;
             }
             return count;
+        }
+
+        public static int CountCorrect(this IReadOnlyList<Hints> hints)
+        {
+            int best = 0;
+            foreach (Hints itemHints in hints)
+            {
+                int temp = itemHints.CountCorrect();
+                if (temp > best)
+                {
+                    best = temp;
+                }
+            }
+            return best;
         }
     }
 }
