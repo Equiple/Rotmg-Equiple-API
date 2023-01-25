@@ -108,6 +108,7 @@ namespace RomgleWebApi.Extensions
             {
                 Id = player.Id,
                 Name = player.Name,
+                Role = player.Role,
                 RegistrationDate = player.RegistrationDate,
                 NormalStats = await statsDetalization.Invoke(player.NormalStats),
                 DailyStats = await statsDetalization.Invoke(player.DailyStats),

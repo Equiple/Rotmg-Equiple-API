@@ -45,7 +45,6 @@ namespace RomgleWebApi.Services.Implementations
             Player player = await _playersService.GetAsync(playerId);
             GuessResult result = new GuessResult();
             result.Guess = await _itemsService.GetAsync(guessId);
-            
             if (player.HasActiveGame())
             {
                 if (player.CurrentGame!.Mode != mode)
@@ -281,7 +280,7 @@ namespace RomgleWebApi.Services.Implementations
                 string targetProperty = hintProperty(target);
                 Color targetColor = Color.FromName(targetProperty);
                 Color guessColor = Color.FromName(guessProperty);
-                Color result = GetColorHintGradient(targetColor, guessColor);
+                Color result = GetColorHintLAB(targetColor, guessColor);
                 return ColorTranslator.ToHtml(result);
             }
 

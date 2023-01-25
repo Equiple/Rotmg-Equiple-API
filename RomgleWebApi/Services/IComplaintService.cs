@@ -4,7 +4,7 @@ namespace RomgleWebApi.Services
 {
     public interface IComplaintService
     {
-        Task FileComplaintAsync(string author, string complaint);
+        Task<bool> FileComplaintAsync(string fingerprint, string email, string complaint);
 
         Task RemoveComplaintAsync(string complaintId);
 

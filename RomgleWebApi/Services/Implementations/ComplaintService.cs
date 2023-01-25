@@ -24,14 +24,35 @@ namespace RomgleWebApi.Services.Implementations
             _playersService = playersService;
         }
 
-        public async Task FileComplaintAsync(string author, string complaint)
+        public async Task<Complaint> GetAsync(string fingerprint)
         {
+            return await _complaintsCollection.Find(complaint => complaint.Fingerprint == fingerprint).FirstAsync();
+        }
+
+        public async Task<bool> FileComplaintAsync(string fingerprint, string email, string complaint)
+        {
+            if (await _complaintsCollection
+                .CountDocumentsAsync(complaint => complaint.Fingerprint == fingerprint) > 1)
+            {
+                IMongoQueryable<Complaint> query = _complaintsCollection.AsQueryable()
+                    .Where(complaint => complaint.Fingerprint == fingerprint)
+                    .OrderByDescending(complaint => complaint.Id);
+                Complaint lastComplaint = query.First();
+                TimeSpan fiveHoursSpan = lastComplaint.Date.Time + TimeSpan.FromHours(5);
+                TimeSpan current = DateTime.UtcNow.TimeOfDay;
+                if (lastComplaint.Date.Date == DateTime.UtcNow.Date && current <= fiveHoursSpan)
+                {
+                    return false;
+                }
+            }
             await _complaintsCollection.InsertOneAsync(new Complaint()
             {
-                Email = author,
+                Fingerprint = fingerprint,
+                Email = email,
                 Body = complaint,
                 Date = DateTime.UtcNow
             });
+            return true;
         }
 
         public async Task RemoveComplaintAsync(string complaintId)

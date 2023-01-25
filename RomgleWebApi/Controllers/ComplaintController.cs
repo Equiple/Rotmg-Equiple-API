@@ -24,9 +24,9 @@ namespace RomgleWebApi.Controllers
 
         [AllowAnonymous]
         [HttpPost("FileComplaint")]
-        public async Task FileComplaint(string author, string complaint)
+        public async Task<bool> FileComplaint(string fingerprint, string email, string complaint)
         {
-            await _complaintService.FileComplaintAsync(author, complaint);
+            return await _complaintService.FileComplaintAsync(fingerprint, email, complaint);
         }
 
         [AllowAnonymous]

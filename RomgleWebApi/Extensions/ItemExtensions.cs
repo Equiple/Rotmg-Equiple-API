@@ -90,7 +90,7 @@ namespace RomgleWebApi.Extensions
                 return "???";
             }
             string name = item.Name
-                .RemoveSymbols(",.`()-_:;\"!?'")
+                .RemoveSymbols(",.'`[]{}()-*_:;\"!?")
                 .ToLower();
             List<string> initialWords = name.Split(' ').ToList();
             string anagram = "";

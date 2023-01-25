@@ -113,10 +113,10 @@ namespace RomgleWebApi.Extensions
         /// <returns></returns>
         public static string RemoveSymbols(this string givenString, string symbols)
         {
-            string str = "";
+            string str = givenString;
             foreach(char letter in symbols)
             {
-                str = givenString.Replace(letter + "", "");
+                str = str.Replace(letter + "", "");
             }
             return str;
         }

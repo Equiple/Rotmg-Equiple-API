@@ -12,6 +12,8 @@ namespace RomgleWebApi.Data.Models
 
         public string Name { get; set; }
 
+        public string Role { get; set; }
+
         public DateAndTime RegistrationDate { get; set; }
 
         public DetailedGameStatistic NormalStats { get; set; }
