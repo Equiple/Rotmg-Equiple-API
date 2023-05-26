@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc.ModelBinding;
 
-namespace RomgleWebApi.ModelBinding.Attributes
+namespace RotmgleWebApi.ModelBinding
 {
     [AttributeUsage(AttributeTargets.Parameter)]
     public class FromUserAttribute : Attribute, IBindingSourceMetadata, IModelNameProvider

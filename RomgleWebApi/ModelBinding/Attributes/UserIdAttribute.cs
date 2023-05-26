@@ -1,6 +1,6 @@
-﻿using RomgleWebApi.Utils;
+﻿using RotmgleWebApi.Authentication;
 
-namespace RomgleWebApi.ModelBinding.Attributes
+namespace RotmgleWebApi.ModelBinding
 {
     public class UserIdAttribute : FromUserAttribute
     {

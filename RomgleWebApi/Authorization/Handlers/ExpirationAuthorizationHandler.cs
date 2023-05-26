@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using RomgleWebApi.Authorization.Requirements;
 using System.Security.Claims;
 
-namespace RomgleWebApi.Authorization.Handlers
+namespace RotmgleWebApi.Authorization
 {
     public class ExpirationAuthorizationHandler : AuthorizationHandler<ExpirationAuthorizationRequirement>
     {

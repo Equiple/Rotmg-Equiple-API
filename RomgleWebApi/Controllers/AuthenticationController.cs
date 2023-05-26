@@ -1,9 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RomgleWebApi.Data.Auth;
-using RomgleWebApi.Data.Models.Auth;
+using RomgleWebApi.Authentication.Models;
+using RomgleWebApi.Authentication.Services;
 using RomgleWebApi.ModelBinding.Attributes;
-using RomgleWebApi.Services;
 using RomgleWebApi.Utils;
 
 namespace RomgleWebApi.Controllers
@@ -27,17 +26,16 @@ namespace RomgleWebApi.Controllers
         }
 
         [Authorize]
-        [AllowAnonymous]
         [HttpPost("Authenticate")]
         public async Task<AuthenticationResponse> Authenticate(
-            AuthenticationPermit permit,
-            [UserId] string? playerId,
-            [DeviceId] string? deviceId)
+            [UserId] string playerId,
+            [DeviceId] string deviceId,
+            AuthenticationPermit permit)
         {
             AuthenticationResult result = await _authenticationService.AuthenticateAsync(
-                permit,
                 playerId,
-                deviceId);
+                deviceId,
+                permit);
             return result;
         }
 

@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RomgleWebApi.Data.Models;
-using RomgleWebApi.ModelBinding.Attributes;
-using RomgleWebApi.Services;
+using RotmgleWebApi.Games;
+using RotmgleWebApi.Items;
+using RotmgleWebApi.ModelBinding;
+using RotmgleWebApi.Players;
 
 namespace RomgleWebApi.Controllers
 {
@@ -26,7 +27,7 @@ namespace RomgleWebApi.Controllers
         }
 
         [HttpGet("GetPlayerStats")]
-        public async Task<DetailedGameStatistic> GetPlayerStats([UserId] string playerId, Gamemode mode)
+        public async Task<GameStatisticDetailed> GetPlayerStats([UserId] string playerId, Gamemode mode)
         {
             return await _playersService.GetPlayerStatsAsync(playerId, mode);
         }

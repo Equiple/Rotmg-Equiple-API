@@ -1,8 +1,13 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RomgleWebApi.Data.Models;
+using RomgleWebApi.Daily.Services;
+using RomgleWebApi.Game.Models;
+using RomgleWebApi.Game.Services;
+using RomgleWebApi.Items.Models;
+using RomgleWebApi.Items.Services;
 using RomgleWebApi.ModelBinding.Attributes;
-using RomgleWebApi.Services;
+using RomgleWebApi.Player.Models;
+using RomgleWebApi.Player.Services;
 
 namespace RomgleWebApi.Controllers
 {

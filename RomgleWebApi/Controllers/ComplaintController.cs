@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RomgleWebApi.Data.Models;
+using RomgleWebApi.Complaints.Models;
+using RomgleWebApi.Complaints.Services;
 using RomgleWebApi.ModelBinding.Attributes;
-using RomgleWebApi.Services;
 using RomgleWebApi.Services.Implementations;
 
 namespace RomgleWebApi.Controllers

@@ -1,11 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc.ModelBinding;
 using System.Security.Claims;
 
-namespace RomgleWebApi.ModelBinding.ValueProviders
+namespace RotmgleWebApi.ModelBinding
 {
     public class UserValueProvider : BindingSourceValueProvider
     {
-        private ClaimsPrincipal _user;
+        private readonly ClaimsPrincipal _user;
 
         public UserValueProvider(ClaimsPrincipal user) : base(CustomBindingSources.User)
         {
@@ -27,7 +27,7 @@ namespace RomgleWebApi.ModelBinding.ValueProviders
                 return ValueProviderResult.None;
             }
 
-            ValueProviderResult result = new ValueProviderResult(claimValue);
+            ValueProviderResult result = new(claimValue);
             return result;
         }
     }

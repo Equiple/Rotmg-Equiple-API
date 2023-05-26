@@ -1,7 +1,3 @@
-using Hangfire;
-using Hangfire.Mongo;
-using Hangfire.Mongo.Migration.Strategies.Backup;
-using Hangfire.Mongo.Migration.Strategies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.OpenApi.Models;
 using MongoDB.Bson;
@@ -11,29 +7,41 @@ using RomgleWebApi.Authentication.Validators;
 using RomgleWebApi.Authentication.Options;
 using RomgleWebApi.Authorization.Handlers;
 using RomgleWebApi.Authorization.Requirements;
-using RomgleWebApi.DAL;
-using RomgleWebApi.Data.Models.BsonClassMaps;
-using RomgleWebApi.Data.Settings;
 using RomgleWebApi.Json.Converters;
 using RomgleWebApi.ModelBinding.ValueProviders.Factories;
-using RomgleWebApi.Services;
-using RomgleWebApi.Services.Implementations;
 using RomgleWebApi.Services.ServiceCollectionExtensions;
-using RomgleWebApi.Utils;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json.Serialization;
 using RomgleWebApi.Jobs;
+using RomgleWebApi.Authentication.Services;
+using RomgleWebApi.Authentication.Services.Implementations;
+using RomgleWebApi.Common.Bson;
+using RomgleWebApi.Daily.Services;
+using RomgleWebApi.Daily.Services.Implementations;
+using RomgleWebApi.Common;
+using RomgleWebApi.Player.Services;
+using RomgleWebApi.Player.Services.Implementations;
+using RomgleWebApi.Game.Services.Implementations;
+using RomgleWebApi.Game.Services;
+using RomgleWebApi.Items.Services.Implementations;
+using RomgleWebApi.Items.Services;
+using RomgleWebApi.Authentication.Settings;
+using RomgleWebApi.Common.Settings;
+using RomgleWebApi.Complaints.Services;
+using RomgleWebApi.Complaints.Services.Implementations;
+using RomgleWebApi.Jobs.Services;
+using RomgleWebApi.Jobs.Services.Implementations;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddHangfire(configuration => configuration
-    .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
-    .UseSimpleAssemblyNameTypeSerializer()
-    .UseRecommendedSerializerSettings());
+//builder.Services.AddHangfire(configuration => configuration
+//    .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
+//    .UseSimpleAssemblyNameTypeSerializer()
+//    .UseRecommendedSerializerSettings());
 
-builder.Services.AddHangfireServer();
+//builder.Services.AddHangfireServer();
 
 const string authenticationScheme = "AccessToken";
 
@@ -83,9 +91,7 @@ builder.Services.Configure<TokenAuthorizationSettings>(
 builder.Services.AddAuthenticationService(
     new SelfAuthenticationValidator(),
     new GoogleAuthenticationValidator());
-builder.Services.AddSingleton<IDataCollectionProvider, DefaultMongoDataCollectionProvider>();
 builder.Services.AddSingleton<IAccessTokenService, JWTService>();
-builder.Services.AddSingleton<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddSingleton<IItemService, ItemService>();
 builder.Services.AddSingleton<IDailyService, DailyService>();
 builder.Services.AddSingleton<IPlayerService, PlayerService>();
@@ -112,19 +118,19 @@ StaticRegistrationHelper.ProdOnce("Startup", () =>
     BsonClassMapInitializer.Initialize();
 
     //hangfire
-    var migrationOptions = new MongoMigrationOptions
-    {
-        MigrationStrategy = new MigrateMongoMigrationStrategy(),
-        BackupStrategy = new CollectionMongoBackupStrategy(),
-    };
-    GlobalConfiguration.Configuration.UseMongoStorage(
-        builder.Configuration.GetSection("Hangfire")["ConnectionString"],
-        new MongoStorageOptions
-        {
-            MigrationOptions = migrationOptions,
-            CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.TailNotificationsCollection
-        });
-    RecurringJobInitializer.Initialize();
+    //var migrationOptions = new MongoMigrationOptions
+    //{
+    //    MigrationStrategy = new MigrateMongoMigrationStrategy(),
+    //    BackupStrategy = new CollectionMongoBackupStrategy(),
+    //};
+    //GlobalConfiguration.Configuration.UseMongoStorage(
+    //    builder.Configuration.GetSection("Hangfire")["ConnectionString"],
+    //    new MongoStorageOptions
+    //    {
+    //        MigrationOptions = migrationOptions,
+    //        CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.TailNotificationsCollection
+    //    });
+    //RecurringJobInitializer.Initialize();
 });
 
 var app = builder.Build();
@@ -135,7 +141,7 @@ if (app.Environment.IsDevelopment())
     app.UseCors(builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
     app.UseDeveloperExceptionPage();
 
-    app.UseHangfireDashboard();
+    //app.UseHangfireDashboard();
     app.UseSwagger();
     app.UseSwaggerUI();
 }

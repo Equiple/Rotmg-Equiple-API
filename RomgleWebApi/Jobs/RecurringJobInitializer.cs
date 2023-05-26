@@ -1,12 +1,9 @@
 ﻿using Hangfire;
-using RomgleWebApi.Services;
 
-namespace RomgleWebApi.Jobs
+namespace RotmgleWebApi.Jobs
 {
     public static class RecurringJobInitializer
     {
-        #region public methods
-
         /// <summary>
         /// Initializes all recurrent jobs.
         /// </summary>
@@ -16,12 +13,10 @@ namespace RomgleWebApi.Jobs
                 jobService => jobService.InvalidateExpiredDailyGamesAsync(),
                 Cron.Daily,
                 timeZone: TimeZoneInfo.Utc);
-            RecurringJob.AddOrUpdate<IJobService>("RemoveExpiredTokensAndGuests",
-                jobService => jobService.RemoveExpiredTokensAndGuestsAsync(),
+            RecurringJob.AddOrUpdate<IJobService>("RemoveInactiveGuests",
+                jobService => jobService.RemoveInactiveGuestsAsync(),
                 Cron.Weekly,
                 timeZone: TimeZoneInfo.Utc);
         }
-
-        #endregion public methods
     }
 }

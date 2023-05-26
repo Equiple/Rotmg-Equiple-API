@@ -1,12 +1,9 @@
-﻿using RomgleWebApi.Data.Auth;
-using RomgleWebApi.Data.Models.Auth;
-
-namespace RomgleWebApi.Authentication.Validators
+﻿namespace RotmgleWebApi.Authentication
 {
     public interface IAuthenticationValidator
     {
         IdentityProvider IdentityProvider { get; }
 
-        Task<AuthenticationValidatorResult> ValidateAsync(AuthenticationPermit permit);
+        Task<Result<AuthenticationValidatorResult>> ValidateAsync(AuthenticationPermit permit);
     }
 }

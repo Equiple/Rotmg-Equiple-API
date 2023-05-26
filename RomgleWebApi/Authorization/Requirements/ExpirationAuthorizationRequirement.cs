@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 
-namespace RomgleWebApi.Authorization.Requirements
+namespace RotmgleWebApi.Authorization
 {
     public class ExpirationAuthorizationRequirement : IAuthorizationRequirement
     {

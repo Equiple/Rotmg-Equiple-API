@@ -1,14 +1,12 @@
 ﻿using Google.Apis.Auth;
-using RomgleWebApi.Data.Auth;
-using RomgleWebApi.Data.Models.Auth;
 
-namespace RomgleWebApi.Authentication.Validators
+namespace RotmgleWebApi.Authentication
 {
     public class GoogleAuthenticationValidator : IAuthenticationValidator
     {
         public IdentityProvider IdentityProvider => IdentityProvider.Google;
 
-        public async Task<AuthenticationValidatorResult> ValidateAsync(AuthenticationPermit permit)
+        public async Task<Result<AuthenticationValidatorResult>> ValidateAsync(AuthenticationPermit permit)
         {
             GoogleJsonWebSignature.Payload payload;
             try
@@ -17,15 +15,15 @@ namespace RomgleWebApi.Authentication.Validators
             }
             catch (InvalidJwtException e)
             {
-                return AuthenticationValidatorResult.Invalid;
+                return new Exception("Invalid google id token");
             }
 
-            Identity identity = new Identity
+            Identity identity = new()
             {
                 Provider = IdentityProvider,
-                Id = payload.Email
+                Id = payload.Email,
             };
-            return AuthenticationValidatorResult.Valid(identity, name: payload.Name);
+            return new AuthenticationValidatorResult(identity, Name: payload.Name);
         }
     }
 }

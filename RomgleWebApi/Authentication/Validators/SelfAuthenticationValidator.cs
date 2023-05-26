@@ -1,16 +1,12 @@
-﻿using RomgleWebApi.Data.Auth;
-using RomgleWebApi.Data.Models.Auth;
-
-namespace RomgleWebApi.Authentication.Validators
+﻿namespace RotmgleWebApi.Authentication
 {
     public class SelfAuthenticationValidator : IAuthenticationValidator
     {
         public IdentityProvider IdentityProvider => IdentityProvider.Self;
 
-        public Task<AuthenticationValidatorResult> ValidateAsync(AuthenticationPermit identity)
+        public async Task<Result<AuthenticationValidatorResult>> ValidateAsync(AuthenticationPermit permit)
         {
-            //impossible to re-authenticate as self-provided identity (aka guest)
-            return Task.FromResult(AuthenticationValidatorResult.Invalid);
+            return new Exception("Can't authenticate as guest using permit");
         }
     }
 }
