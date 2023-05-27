@@ -1,11 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RomgleWebApi.Authentication.Models;
-using RomgleWebApi.Authentication.Services;
-using RomgleWebApi.ModelBinding.Attributes;
-using RomgleWebApi.Utils;
+using RotmgleWebApi.Authentication;
+using RotmgleWebApi.ModelBinding;
 
-namespace RomgleWebApi.Controllers
+namespace RotmgleWebApi.Controllers
 {
     [ApiController]
     [Route("[controller]")]
@@ -18,39 +16,41 @@ namespace RomgleWebApi.Controllers
             _authenticationService = authenticationService;
         }
 
+        [AllowAnonymous]
         [HttpPost("AuthenticateGuest")]
-        public async Task<AuthenticationResponse> AuthenticateGuest()
+        public async Task<AuthenticationResponse> AuthenticateGuest([DeviceId] string deviceId)
         {
-            AuthenticationResult result = await _authenticationService.AuthenticateGuestAsync();
-            return result;
+            AuthenticationResult result = await _authenticationService.AuthenticateGuestAsync(deviceId);
+            return result.ToResponse();
         }
 
         [Authorize]
+        [AllowAnonymous]
         [HttpPost("Authenticate")]
         public async Task<AuthenticationResponse> Authenticate(
-            [UserId] string playerId,
+            [UserId] string? playerId,
             [DeviceId] string deviceId,
-            AuthenticationPermit permit)
+            [FromBody] AuthenticationPermit permit)
         {
-            AuthenticationResult result = await _authenticationService.AuthenticateAsync(
+            Result<AuthenticationResult> result = await _authenticationService.AuthenticateAsync(
                 playerId,
                 deviceId,
                 permit);
-            return result;
+            return result.ToResponse();
         }
 
-        [Authorize(Policy = PolicyNames.IgnoreExpiration)]
+        [Authorize]
         [HttpPost("RefreshAccessToken")]
         public async Task<AuthenticationResponse> RefreshAccessToken(
             [UserId] string playerId,
             [DeviceId] string deviceId,
-            string refreshToken)
+            [FromBody] string refreshToken)
         {
-            AuthenticationResult result = await _authenticationService.RefreshAccessTokenAsync(
+            Result<AuthenticationResult> result = await _authenticationService.RefreshAccessTokenAsync(
                 playerId,
                 deviceId,
                 refreshToken);
-            return result;
+            return result.ToResponse();
         }
 
         [Authorize]

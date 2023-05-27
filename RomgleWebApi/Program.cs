@@ -1,36 +1,17 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.OpenApi.Models;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Conventions;
-using RomgleWebApi.Authentication.Handlers;
-using RomgleWebApi.Authentication.Validators;
-using RomgleWebApi.Authentication.Options;
-using RomgleWebApi.Authorization.Handlers;
-using RomgleWebApi.Authorization.Requirements;
-using RomgleWebApi.Json.Converters;
-using RomgleWebApi.ModelBinding.ValueProviders.Factories;
-using RomgleWebApi.Services.ServiceCollectionExtensions;
-using System.IdentityModel.Tokens.Jwt;
+using RotmgleWebApi.Authentication;
+using RotmgleWebApi.ModelBinding;
 using System.Text.Json.Serialization;
-using RomgleWebApi.Jobs;
-using RomgleWebApi.Authentication.Services;
-using RomgleWebApi.Authentication.Services.Implementations;
-using RomgleWebApi.Common.Bson;
-using RomgleWebApi.Daily.Services;
-using RomgleWebApi.Daily.Services.Implementations;
-using RomgleWebApi.Common;
-using RomgleWebApi.Player.Services;
-using RomgleWebApi.Player.Services.Implementations;
-using RomgleWebApi.Game.Services.Implementations;
-using RomgleWebApi.Game.Services;
-using RomgleWebApi.Items.Services.Implementations;
-using RomgleWebApi.Items.Services;
-using RomgleWebApi.Authentication.Settings;
-using RomgleWebApi.Common.Settings;
-using RomgleWebApi.Complaints.Services;
-using RomgleWebApi.Complaints.Services.Implementations;
-using RomgleWebApi.Jobs.Services;
-using RomgleWebApi.Jobs.Services.Implementations;
+using RotmgleWebApi.Jobs;
+using RotmgleWebApi.Dailies;
+using RotmgleWebApi.Players;
+using RotmgleWebApi.Games;
+using RotmgleWebApi.Items;
+using RotmgleWebApi.Complaints;
+using RotmgleWebApi;
+using Microsoft.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,43 +24,29 @@ var builder = WebApplication.CreateBuilder(args);
 
 //builder.Services.AddHangfireServer();
 
-const string authenticationScheme = "AccessToken";
-
+const string authenticationScheme = "Bearer";
 builder.Services.AddAuthentication(authenticationScheme)
-    .AddScheme<TokenAuthenticationOptions, TokenAuthenticationHandler>(
-        authenticationScheme,
-        options =>
-        {
-            options.IgnoreExpiration = true;
-        });
+    .AddScheme<TokenAuthenticationOptions, TokenAuthenticationHandler>(authenticationScheme, options =>
+    {
+        options.RefreshTokenRequestPath = "Authentication/RefreshAccessToken";
+    });
 
-builder.Services.AddAuthorization(options =>
-{
-    AuthorizationPolicy basePolicy = new AuthorizationPolicyBuilder()
-        .AddAuthenticationSchemes(authenticationScheme)
-        .RequireAuthenticatedUser()
-        .Build();
-    options.DefaultPolicy = new AuthorizationPolicyBuilder()
-        .Combine(basePolicy)
-        .AddRequirements(new ExpirationAuthorizationRequirement(JwtRegisteredClaimNames.Exp))
-        .Build();
-    options.AddPolicy(
-        PolicyNames.IgnoreExpiration,
-        policyBuilder => policyBuilder.Combine(basePolicy));
-});
-builder.Services.AddSingleton<IAuthorizationHandler, ExpirationAuthorizationHandler>();
+builder.Services.AddAuthorization();
 
 builder.Services.AddCors();
 
 builder.Services.AddControllers(options =>
 {
     options.ValueProviderFactories.Add(new UserValueProviderFactory());
-    options.ValueProviderFactories.Add(new CookieValueProviderFactory());
+    options.ValueProviderFactories.Add(new DeviceIdValueProviderFactory());
 }).AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     options.JsonSerializerOptions.Converters.Add(new JsonStringTimeSpanConverter());
 });
+
+builder.Services.AddDeviceIdProviders("default")
+    .Add<UserAgentDeviceIdProvider>();
 
 builder.Services.AddEndpointsApiExplorer();
 
@@ -88,9 +55,8 @@ builder.Services.Configure<RotmgleDatabaseSettings>(
 builder.Services.Configure<TokenAuthorizationSettings>(
     builder.Configuration.GetSection("TokenAuthorization"));
 
-builder.Services.AddAuthenticationService(
-    new SelfAuthenticationValidator(),
-    new GoogleAuthenticationValidator());
+builder.Services.AddAuthenticationService()
+    .AddValidator<GoogleAuthenticationValidator>();
 builder.Services.AddSingleton<IAccessTokenService, JWTService>();
 builder.Services.AddSingleton<IItemService, ItemService>();
 builder.Services.AddSingleton<IDailyService, DailyService>();
@@ -102,10 +68,32 @@ builder.Services.AddSingleton<IComplaintService, ComplaintService>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddSwaggerGen(options =>
 {
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        In = ParameterLocation.Header,
+        Name = HeaderNames.Authorization,
+        Scheme = "Bearer",
+    });
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        },
+    });
+    options.OperationFilter<CustomBindingSourceSwaggerFilter>();
     options.MapType<TimeSpan>(() => new OpenApiSchema
     {
         Type = "string",
-        Format = "time"
+        Format = "time",
     });
 });
 

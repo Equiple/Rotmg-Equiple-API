@@ -23,6 +23,8 @@
 
   <ItemGroup>
     <Folder Include="Assets\Images\" />
+    <Folder Include="Authorization\Handlers\" />
+    <Folder Include="Authorization\Requirements\" />
   </ItemGroup>
 
 </Project>

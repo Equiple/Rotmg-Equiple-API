@@ -1,10 +1,36 @@
-﻿using RotmgleWebApi.Games;
+﻿using RotmgleWebApi.Authentication;
+using RotmgleWebApi.Games;
 using RotmgleWebApi.Items;
 
 namespace RotmgleWebApi.Players
 {
     public static class PlayerExtensions
     {
+        public static bool IsGuest(this Player player)
+        {
+            return player.Identities.Any(i => i.Provider == IdentityProvider.Self);
+        }
+
+        public static void Identify(this Player player, Identity identity, string? name)
+        {
+            int guestIdentityIndex = player.Identities.FindIndex(i => i.Provider == IdentityProvider.Self);
+            if (guestIdentityIndex >= 0)
+            {
+                player.Identities.RemoveAt(guestIdentityIndex);
+                if (name != null)
+                {
+                    player.Name = name;
+                }
+            }
+            player.Identities.Add(identity);
+        }
+
+        public static Device GetDevice(this Player player, string deviceId)
+        {
+            Device device = player.Devices.First(d => d.Id == deviceId);
+            return device;
+        }
+
         /// <summary>
         /// Returns GameStatistic for given player of specified gamemode.
         /// </summary>

@@ -1,106 +1,123 @@
-﻿using Microsoft.Extensions.Options;
-using MongoDB.Driver;
-using MongoDB.Driver.Linq;
+﻿using MongoDB.Driver;
 using RotmgleWebApi.Players;
 
 namespace RotmgleWebApi.Authentication
 {
     public class AuthenticationService : IAuthenticationService
     {
+        private readonly IEnumerable<IAuthenticationValidator> _validators;
         private readonly IPlayerService _playerService;
         private readonly IAccessTokenService _accessTokenService;
-        private readonly IRefreshTokenService _refreshTokenService;
-        private readonly AuthenticationServiceSettings _settings;
 
         public AuthenticationService(
-            IPlayerService playersService,
+            IEnumerable<IAuthenticationValidator> validators,
             IAccessTokenService accessTokenService,
-            IRefreshTokenService refreshTokenService,
-            IOptions<AuthenticationServiceSettings> settings)
+            IPlayerService playersService)
         {
-            _playerService = playersService;
+            _validators = validators;
             _accessTokenService = accessTokenService;
-            _refreshTokenService = refreshTokenService;
-            _settings = settings.Value;
+            _playerService = playersService;
         }
 
-        public async Task<AuthenticationResult> AuthenticateGuestAsync()
+        public async Task<AuthenticationResult> AuthenticateGuestAsync(string deviceId)
         {
-            Identity identity = new Identity
+            Identity identity = new()
             {
-                Provider = IdentityProvider.Self
+                Provider = IdentityProvider.Self,
+                Id = $"guest_{Guid.NewGuid()}",
             };
-            bool idExists;
-            do
-            {
-                identity.Id = $"guest_{Guid.NewGuid()}";
-                Player? existingPlayer = await _playerService.GetByIdentityAsync(identity);
-                idExists = existingPlayer != null;
-            }
-            while (idExists);
-            NewPlayer newPlayer = await _playerService.CreateNewAsync(identity);
-
-            return await Success(newPlayer.Player.Id, newPlayer.Device.Id);
+            Player player = await _playerService.CreateNewAsync(identity, deviceId);
+            AuthenticationResult result = await GenerateNewTokensAndUpdatePlayer(player, deviceId);
+            return result;
         }
 
-        public async Task<AuthenticationResult> AuthenticateAsync(
-            string playerId,
+        public async Task<Result<AuthenticationResult>> AuthenticateAsync(
+            string? loggedPlayerId,
             string deviceId,
             AuthenticationPermit permit)
         {
-            IAuthenticationValidator? validator = _settings.AuthenticationValidators
+            IAuthenticationValidator? validator = _validators
                 .FirstOrDefault(validator => validator.IdentityProvider == permit.Provider);
             if (validator == null)
             {
-                return AuthenticationResult.Failure;
-            }
-            AuthenticationValidatorResult validationResult = await validator.ValidateAsync(permit);
-            if (!validationResult.IsValid)
-            {
-                return AuthenticationResult.Failure;
-            }
-            Identity identity = validationResult.Identity!;
-
-            Player? player = await _playerService.GetByIdentityAsync(identity);
-            if (string.IsNullOrWhiteSpace(playerId) || string.IsNullOrWhiteSpace(deviceId))
-            {
-                (player, Device device) = await AuthenticateAsync(identity, validationResult.Name, permit.DeviceId);
-                actualDeviceId = device.Id;
-            }
-            else
-            {
-                player = await AddIdentity(playerId, identity, validationResult.Name, deviceId);
-                actualDeviceId = deviceId;
+                return new Exception("Identity provider not supported");
             }
 
-            return await Success(player, actualDeviceId);
+            Result<AuthenticationValidatorResult> validationResult = await validator.ValidateAsync(permit);
+            AuthenticationValidatorResult validationRes;
+            switch (validationResult)
+            {
+                case Result<AuthenticationValidatorResult>.Ok ok:
+                    validationRes = ok.Value;
+                    break;
+                case Result<AuthenticationValidatorResult>.Error error:
+                    return error.Exception;
+                default:
+                    throw new NotSupportedException();
+            }
+
+            Player? loggedPlayer = loggedPlayerId != null
+                ? await _playerService.GetAsync(loggedPlayerId)
+                : null;
+            Player? player = await _playerService.GetByIdentityAsync(validationRes.Identity);
+
+            AuthenticationResult result;
+
+            if (player != null)
+            {
+                if (loggedPlayer != null && !loggedPlayer.IsGuest())
+                {
+                    if (loggedPlayer.Id == player.Id)
+                    {
+                        return new Exception("Already logged in");
+                    }
+                    return new Exception("Logout first");
+                }
+                result = await GenerateNewTokensAndUpdatePlayer(player, deviceId);
+                return result;
+            }
+
+            if (loggedPlayer != null)
+            {
+                loggedPlayer.Identify(validationRes.Identity, validationRes.Name);
+                result = await GenerateNewTokensAndUpdatePlayer(loggedPlayer, deviceId);
+                return result;
+            }
+
+            player = await _playerService.CreateNewAsync(
+                validationRes.Identity,
+                deviceId,
+                name: validationRes.Name);
+            result = await GenerateNewTokensAndUpdatePlayer(player, deviceId);
+            return result;
         }
 
-        public async Task<AuthenticationResult> RefreshAccessTokenAsync(
+        public async Task<Result<AuthenticationResult>> RefreshAccessTokenAsync(
             string playerId,
             string deviceId,
             string refreshToken)
         {
             Player player = await _playerService.GetAsync(playerId);
-            //Device device = player.GetDevice(deviceId);
-            //RefreshToken? token = device.RefreshTokens.FirstOrDefault(token => token.Token == refreshToken);
-            RefreshToken? token = await _refreshTokenService.GetTokenOrDefaultAsync(refreshToken);
-            if (token == null)
+            Device device = player.GetDevice(deviceId);
+
+            if (device.RefreshToken == null || device.RefreshToken.IsRevoked())
             {
-                return AuthenticationResult.Failure;
+                return new Exception("Logged out");
             }
-            if (token.IsRevoked())
+
+            if (device.RefreshToken.IsExpired())
+            {
+                return new Exception("Refresh token expired");
+            }
+
+            if (device.RefreshToken.Token != refreshToken)
             {
                 await LogoutAsync(player, deviceId);
+                return new Exception("Invalid refresh token");
             }
-            if (!token.IsActive())
-            {
-                return AuthenticationResult.Failure;
-            }
-            token.Revoke();
-            await _playerService.UpdateAsync(player);
-            await _refreshTokenService.UpdateAsync(token);
-            return await Success(player, deviceId);
+
+            AuthenticationResult result = await GenerateNewTokensAndUpdatePlayer(player, deviceId);
+            return result;
         }
 
         public async Task LogoutAsync(string playerId, string deviceId)
@@ -111,59 +128,22 @@ namespace RotmgleWebApi.Authentication
 
         private async Task LogoutAsync(Player player, string deviceId)
         {
-            await _refreshTokenService.RevokeRefreshTokens(deviceId);
-            await _playerService.RefreshSessionKeyAsync(player.Id, deviceId);
-        }
-
-        private async Task<(Player, Device)> AuthenticateAsync(Identity identity, string? name, string? deviceId)
-        {
-            PlayerByIdentity? playerByIdentity = await _playerService.GetByIdentityAsync(identity);
-            Player player;
-            Device device;
-            if (playerByIdentity.HasValue)
+            Device device = player.GetDevice(deviceId);
+            if (device.RefreshToken != null)
             {
-                player = playerByIdentity.Value.Player;
-                if (string.IsNullOrWhiteSpace(deviceId))
-                {
-                    device = await _playerService.CreateNewDeviceAsync(player.Id);
-                }
-                else
-                {
-                    device = player.GetDevice(deviceId);
-                }
-                await _playerService.RefreshSessionKeyAsync(player.Id, device.Id);
+                device.RefreshToken.Revoke();
             }
-            else
-            {
-                NewPlayer newPlayer = await _playerService.CreateNewAsync(identity, name: name);
-                player = newPlayer.Player;
-                device = newPlayer.Device;
-            }
-            return (player, device);
-        }
-
-        private async Task<Player> AddIdentity(string playerId, Identity identity, string? name, string deviceId)
-        {
-            Player player = await _playerService.GetAsync(playerId);
-            if (player.Identities.Any(identity => identity.Provider == IdentityProvider.Self))
-            {
-                player.Identities.Clear();
-                if (!string.IsNullOrWhiteSpace(name))
-                {
-                    player.Name = name;
-                }
-            }
-            player.Identities.Add(identity);
             await _playerService.UpdateAsync(player);
-            await _playerService.RefreshSessionKeyAsync(player.Id, deviceId);
-            return player;
         }
 
-        private async Task<AuthenticationResult> Success(string playerId, string deviceId)
+        private async Task<AuthenticationResult> GenerateNewTokensAndUpdatePlayer(Player player, string deviceId)
         {
-            string accessToken = await _accessTokenService.GenerateAccessTokenAsync(playerId, deviceId);
-            RefreshToken refreshToken = await _accessTokenService.GenerateRefreshTokenAsync(deviceId);
-            return AuthenticationResult.Success(accessToken, refreshToken.Token, deviceId);
+            string accessToken = _accessTokenService.GenerateAccessToken(player.Id, deviceId);
+            RefreshToken refreshToken = _accessTokenService.GenerateRefreshToken();
+            Device device = player.GetDevice(deviceId);
+            device.RefreshToken = refreshToken;
+            await _playerService.UpdateAsync(player);
+            return new AuthenticationResult(accessToken, refreshToken.Token);
         }
     }
 }

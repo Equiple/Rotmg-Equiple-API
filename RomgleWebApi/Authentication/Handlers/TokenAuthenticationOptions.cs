@@ -4,5 +4,6 @@ namespace RotmgleWebApi.Authentication
 {
     public class TokenAuthenticationOptions : AuthenticationSchemeOptions
     {
+        public string? RefreshTokenRequestPath { get; set; }
     }
 }

@@ -4,10 +4,13 @@ namespace RotmgleWebApi.Authentication
 {
     public interface IAccessTokenService
     {
-        string GenerateAccessTokenAsync(string playerId);
+        string GenerateAccessToken(string playerId, string deviceId);
 
-        RefreshToken GenerateRefreshTokenAsync();
+        RefreshToken GenerateRefreshToken();
 
-        Result<ClaimsPrincipal> ValidateAccessTokenAsync(string accessToken);
+        Task<Result<IEnumerable<Claim>>> ValidateAccessTokenAsync(
+            string accessToken,
+            string deviceId,
+            bool validateLifetime = true);
     }
 }

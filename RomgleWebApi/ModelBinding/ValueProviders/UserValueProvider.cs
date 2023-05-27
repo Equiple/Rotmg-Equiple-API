@@ -7,16 +7,14 @@ namespace RotmgleWebApi.ModelBinding
     {
         private readonly ClaimsPrincipal _user;
 
-        public UserValueProvider(ClaimsPrincipal user) : base(CustomBindingSources.User)
+        public UserValueProvider(ClaimsPrincipal user) : base(CustomBindingSource.User)
         {
             _user = user;
         }
 
         public override bool ContainsPrefix(string prefix)
         {
-            prefix = prefix.ToLower();
-            bool hasClaim = _user.HasClaim(claim => claim.Type.ToLower() == prefix);
-            return hasClaim;
+            return true;
         }
 
         public override ValueProviderResult GetValue(string key)

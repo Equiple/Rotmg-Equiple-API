@@ -63,7 +63,7 @@ namespace RotmgleWebApi.Players
             return player;
         }
 
-        public async Task<Player> CreateNewAsync(Identity identity, string? deviceId, string? name = null)
+        public async Task<Player> CreateNewAsync(Identity identity, string deviceId, string? name = null)
         {
             Player? existingPlayer = await GetByIdentityAsync(identity);
             if (existingPlayer != null)
@@ -74,7 +74,7 @@ namespace RotmgleWebApi.Players
             name ??= StringUtils.GetRandomDefaultName();
             Device device = new()
             {
-                Id = deviceId ?? "default",
+                Id = deviceId,
             };
             Player player = new()
             {
@@ -269,7 +269,7 @@ namespace RotmgleWebApi.Players
                 };
                 Result<Player> createRes = await CreateNewAsync(
                     identity,
-                    null,
+                    "knock_off",
                     name: StringUtils.GenerateRandomNameLookingString());
                 if (createRes is Result<Player>.Ok playerRes)
                 {

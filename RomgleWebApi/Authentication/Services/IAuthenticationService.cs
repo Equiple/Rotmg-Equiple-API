@@ -2,18 +2,18 @@
 {
     public interface IAuthenticationService
     {
-        Task<AuthenticationResult> AuthenticateGuestAsync();
+        Task<AuthenticationResult> AuthenticateGuestAsync(string deviceId);
 
         Task<Result<AuthenticationResult>> AuthenticateAsync(
-            string playerId,
-            string? deviceId,
+            string? loggedPlayerId,
+            string deviceId,
             AuthenticationPermit permit);
 
         Task<Result<AuthenticationResult>> RefreshAccessTokenAsync(
             string playerId,
-            string? deviceId,
+            string deviceId,
             string refreshToken);
 
-        Task LogoutAsync(string playerId, string? deviceId);
+        Task LogoutAsync(string playerId, string deviceId);
     }
 }

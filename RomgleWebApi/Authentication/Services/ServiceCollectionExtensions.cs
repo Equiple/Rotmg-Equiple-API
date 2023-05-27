@@ -2,16 +2,27 @@
 {
     public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection AddAuthenticationService(
-            this IServiceCollection services,
-            params IAuthenticationValidator[] authenticationValidators)
+        public static IAuthenticationServiceBuilder AddAuthenticationService(this IServiceCollection services)
         {
-            services.Configure<AuthenticationServiceSettings>(settings =>
+            services.AddSingleton<IAuthenticationService, AuthenticationService>();
+            AuthenticationServiceBuilder builder = new(services);
+            return builder;
+        }
+
+        private class AuthenticationServiceBuilder : IAuthenticationServiceBuilder
+        {
+            private readonly IServiceCollection _services;
+
+            public AuthenticationServiceBuilder(IServiceCollection services)
             {
-                settings.AuthenticationValidators.Clear();
-                settings.AuthenticationValidators.AddRange(authenticationValidators);
-            });
-            return services.AddSingleton<IAuthenticationService, AuthenticationService>();
+                _services = services;
+            }
+
+            public IAuthenticationServiceBuilder AddValidator<T>() where T : class, IAuthenticationValidator
+            {
+                _services.AddSingleton<IAuthenticationValidator, T>();
+                return this;
+            }
         }
     }
 }

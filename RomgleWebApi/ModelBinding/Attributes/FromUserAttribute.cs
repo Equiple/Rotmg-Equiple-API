@@ -10,7 +10,7 @@ namespace RotmgleWebApi.ModelBinding
             Name = claimType;
         }
 
-        public BindingSource? BindingSource => CustomBindingSources.User;
+        public BindingSource? BindingSource => CustomBindingSource.User;
 
         public string? Name { get; }
     }

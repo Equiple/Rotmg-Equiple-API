@@ -15,7 +15,7 @@ namespace RotmgleWebApi.Jobs
                 timeZone: TimeZoneInfo.Utc);
             RecurringJob.AddOrUpdate<IJobService>("RemoveInactiveGuests",
                 jobService => jobService.RemoveInactiveGuestsAsync(),
-                Cron.Weekly,
+                Cron.Daily,
                 timeZone: TimeZoneInfo.Utc);
         }
     }

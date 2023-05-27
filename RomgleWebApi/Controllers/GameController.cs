@@ -1,46 +1,39 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RomgleWebApi.Daily.Services;
-using RomgleWebApi.Game.Models;
-using RomgleWebApi.Game.Services;
-using RomgleWebApi.Items.Models;
-using RomgleWebApi.Items.Services;
-using RomgleWebApi.ModelBinding.Attributes;
-using RomgleWebApi.Player.Models;
-using RomgleWebApi.Player.Services;
+using RotmgleWebApi.Games;
+using RotmgleWebApi.Items;
+using RotmgleWebApi.ModelBinding;
+using RotmgleWebApi.Players;
 
-namespace RomgleWebApi.Controllers
+namespace RotmgleWebApi.Controllers
 {
     [Authorize]
     [ApiController]
     [Route("/")]
     public class GameController : ControllerBase
     {
-        private readonly IItemService _itemsService;
-        private readonly IPlayerService _playersService;
-        private readonly IDailyService _dailiesService;
+        private readonly IItemService _itemService;
+        private readonly IPlayerService _playerService;
         private readonly IGameService _gameService;
         private readonly ILogger<GameController> _logger;
 
         public GameController(
-            ILogger<GameController> logger,
-            IItemService itemsService,
-            IPlayerService playersService,
-            IDailyService dailiesService,
-            IGameService gameService)
+            IItemService itemService,
+            IPlayerService playerService,
+            IGameService gameService,
+            ILogger<GameController> logger)
         {
-            _logger = logger;
-            _itemsService = itemsService;
-            _playersService = playersService;
-            _dailiesService = dailiesService;
+            _itemService = itemService;
+            _playerService = playerService;
             _gameService = gameService;
+            _logger = logger;
         }
 
         [AllowAnonymous]
         [HttpGet("FindAll")]
-        public async Task<IReadOnlyList<Item>> FindAll(string searchInput, bool reskinsExcluded)
+        public async Task<IEnumerable<Item>> FindAll(string searchInput, bool reskinsExcluded)
         {
-            IReadOnlyList<Item> items = await _itemsService.FindAllAsync(searchInput, reskinsExcluded);
+            IEnumerable<Item> items = await _itemService.FindAllAsync(searchInput, reskinsExcluded);
             return items;
         }
 
@@ -54,20 +47,20 @@ namespace RomgleWebApi.Controllers
         [HttpGet("WasDailyAttempted")]
         public async Task<bool> WasDailyAttempted([UserId] string playerId)
         {
-            bool result = await _playersService.WasDailyAttemptedAsync(playerId);
+            bool result = await _playerService.WasDailyAttemptedAsync(playerId);
             return result;
         }
 
         [HttpGet("GetCurrentStreak")]
         public async Task<int> GetCurrentStreak([UserId] string playerId, Gamemode mode)
         {
-            return await _playersService.GetCurrentStreakAsync(playerId, mode);
+            return await _playerService.GetCurrentStreakAsync(playerId, mode);
         }
 
         [HttpGet("GetBestStreak")]
         public async Task<int> GetBestStreak([UserId] string playerId, Gamemode mode)
         {
-            return await _playersService.GetBestStreakAsync(playerId, mode);
+            return await _playerService.GetBestStreakAsync(playerId, mode);
         }
 
         [HttpGet("GetTries")]
@@ -78,9 +71,9 @@ namespace RomgleWebApi.Controllers
         }
 
         [HttpGet("GetGuesses")]
-        public async Task<IReadOnlyList<Item>> GetGuesses([UserId] string playerId)
+        public async Task<IEnumerable<Item>> GetGuesses([UserId] string playerId)
         {
-            IReadOnlyList<Item> guesses = await _gameService.GetGuessesAsync(playerId);
+            IEnumerable<Item> guesses = await _gameService.GetGuessesAsync(playerId);
             return guesses;
         }
 
@@ -94,7 +87,7 @@ namespace RomgleWebApi.Controllers
         [HttpGet("GetGuess")]
         public async Task<Item> GetGuess(string itemId)
         {
-            Item guess = await _itemsService.GetAsync(itemId);
+            Item guess = await _itemService.GetAsync(itemId);
             return guess;
         }
 
@@ -106,9 +99,9 @@ namespace RomgleWebApi.Controllers
         }
 
         [HttpGet("GetAllHints")]
-        public async Task<IReadOnlyList<Hints>> GetHints([UserId] string playerId)
+        public async Task<IEnumerable<Hints>> GetHints([UserId] string playerId)
         {
-            IReadOnlyList<Hints> allHints = await _gameService.GetHintsAsync(playerId);
+            IEnumerable<Hints> allHints = await _gameService.GetHintsAsync(playerId);
             return allHints;
         }
 
@@ -125,21 +118,21 @@ namespace RomgleWebApi.Controllers
         }
 
         [HttpGet("GetDailyLeaderboard")]
-        public async Task<IReadOnlyList<PlayerProfile>> GetDailyLeaderboard()
+        public async Task<IEnumerable<PlayerProfile>> GetDailyLeaderboard()
         {
-            return await _playersService.GetDailyLeaderboardAsync();
+            return await _playerService.GetDailyLeaderboardAsync();
         }
 
         [HttpGet("GetNormalLeaderboard")]
-        public async Task<IReadOnlyList<PlayerProfile>> GetNormalLeaderboard()
+        public async Task<IEnumerable<PlayerProfile>> GetNormalLeaderboard()
         {
-            return await _playersService.GetNormalLeaderboardAsync();
+            return await _playerService.GetNormalLeaderboardAsync();
         }
 
         [HttpGet("GetPlayerLeaderboardPlacement")]
         public async Task<int> GetPlayerLeaderboardPlacement([UserId] string playerId, Gamemode mode)
         {
-            return await _playersService.GetPlayerLeaderboardPlacementAsync(playerId, mode);
+            return await _playerService.GetPlayerLeaderboardPlacementAsync(playerId, mode);
         }
     }
 }

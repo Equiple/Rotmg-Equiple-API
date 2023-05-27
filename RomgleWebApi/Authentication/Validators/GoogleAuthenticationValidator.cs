@@ -23,7 +23,7 @@ namespace RotmgleWebApi.Authentication
                 Provider = IdentityProvider,
                 Id = payload.Email,
             };
-            return new AuthenticationValidatorResult(identity, Name: payload.Name);
+            return new AuthenticationValidatorResult(identity, payload.Name);
         }
     }
 }

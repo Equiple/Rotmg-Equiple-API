@@ -12,7 +12,7 @@ namespace RotmgleWebApi
 
         public override bool Equals([NotNullWhen(true)] object? obj)
         {
-            if (!(obj is DateAndTime dateAndTime))
+            if (obj is not DateAndTime dateAndTime)
             {
                 return false;
             }

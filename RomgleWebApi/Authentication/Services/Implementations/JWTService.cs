@@ -20,11 +20,12 @@ namespace RotmgleWebApi.Authentication
             _logger = logger;
         }
 
-        public string GenerateAccessTokenAsync(string playerId)
+        public string GenerateAccessToken(string playerId, string deviceId)
         {
             ClaimsIdentity subject = new(new[]
             {
                 new Claim(CustomClaimNames.UserId, playerId),
+                new Claim(CustomClaimNames.DeviceId, deviceId),
             });
             SymmetricSecurityKey securityKey = new(Encoding.ASCII.GetBytes(_settings.SecretKey));
             SecurityTokenDescriptor tokenDescriptor = new()
@@ -38,13 +39,12 @@ namespace RotmgleWebApi.Authentication
                     SecurityAlgorithms.HmacSha256),
             };
             JwtSecurityTokenHandler tokenHandler = new();
-            JwtSecurityToken token = tokenHandler.CreateJwtSecurityToken(tokenDescriptor);
-            string serializedToken = tokenHandler.WriteToken(token);
-
-            return serializedToken;
+            JwtSecurityToken jwt = tokenHandler.CreateJwtSecurityToken(tokenDescriptor);
+            string accessToken = tokenHandler.WriteToken(jwt);
+            return accessToken;
         }
 
-        public RefreshToken GenerateRefreshTokenAsync()
+        public RefreshToken GenerateRefreshToken()
         {
             byte[] tokenBytes = RandomNumberGenerator.GetBytes(_settings.RefreshTokenByteLength);
             RefreshToken token = new()
@@ -55,13 +55,16 @@ namespace RotmgleWebApi.Authentication
             return token;
         }
 
-        public Result<ClaimsPrincipal> ValidateAccessTokenAsync(string accessToken)
+        public async Task<Result<IEnumerable<Claim>>> ValidateAccessTokenAsync(
+            string accessToken,
+            string deviceId,
+            bool validateLifetime = true)
         {
             JwtSecurityTokenHandler tokenHandler = new();
             SymmetricSecurityKey securityKey = new(Encoding.ASCII.GetBytes(_settings.SecretKey));
             TokenValidationParameters validationParams = new()
             {
-                ValidateLifetime = true,
+                ValidateLifetime = validateLifetime,
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = securityKey,
             };
@@ -75,17 +78,24 @@ namespace RotmgleWebApi.Authentication
                 validationParams.ValidateAudience = true;
                 validationParams.ValidAudience = _settings.Audience;
             }
+            TokenValidationResult validationResult = await tokenHandler.ValidateTokenAsync(
+                accessToken, validationParams);
 
-            try
+            if (!validationResult.IsValid)
             {
-                ClaimsPrincipal claimsPrincipal = tokenHandler.ValidateToken(accessToken, validationParams, out _);
-                return claimsPrincipal;
-            }
-            catch (SecurityTokenException e)
-            {
-                _logger.LogError(e, "Token validation exception");
+                _logger.LogError(validationResult.Exception, "Token validation exception");
                 return new Exception("Invalid token");
             }
+
+            IEnumerable<Claim> claims = validationResult.ClaimsIdentity.Claims;
+
+            Claim? deviceIdClaim = claims.FirstOrDefault(c => c.Type == CustomClaimNames.DeviceId);
+            if (deviceIdClaim != null && deviceIdClaim.Value != deviceId)
+            {
+                return new Exception("Invalid device id");
+            }
+
+            return new Result<IEnumerable<Claim>>.Ok(claims);
         }
     }
 }
