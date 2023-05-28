@@ -1,9 +1,12 @@
-﻿namespace RotmgleWebApi.Authentication
+﻿using Microsoft.Extensions.DependencyInjection.Extensions;
+
+namespace RotmgleWebApi.Authentication
 {
     public static class ServiceCollectionExtensions
     {
         public static IAuthenticationServiceBuilder AddAuthenticationService(this IServiceCollection services)
         {
+            services.RemoveAll<IAuthenticationValidator>();
             services.AddSingleton<IAuthenticationService, AuthenticationService>();
             AuthenticationServiceBuilder builder = new(services);
             return builder;
@@ -21,6 +24,12 @@
             public IAuthenticationServiceBuilder AddValidator<T>() where T : class, IAuthenticationValidator
             {
                 _services.AddSingleton<IAuthenticationValidator, T>();
+                return this;
+            }
+
+            public IAuthenticationServiceBuilder AddValidator<T>(T validator) where T : class, IAuthenticationValidator
+            {
+                _services.AddSingleton(validator);
                 return this;
             }
         }

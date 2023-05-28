@@ -1,14 +1,13 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using RomgleWebApi.Authentication.Models;
-using RomgleWebApi.Authentication.Validators;
-using RomgleWebApi.Items.Models;
-using RomgleWebApi.Items.Services;
-using RomgleWebApi.Services.ServiceCollectionExtensions;
+using RotmgleWebApi;
+using RotmgleWebApi.Authentication;
+using RotmgleWebApi.Items;
 using RotmgleWebApiTests.Utils;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 
 namespace RotmgleWebApiTests.IntegrationTests
@@ -19,10 +18,8 @@ namespace RotmgleWebApiTests.IntegrationTests
         private const string IsAuthenticated = "Authenticated";
         private const string AccessTokenIncluded = "Access token included";
         private const string RefreshTokenIncluded = "Refresh token included";
-        private const string DeviceIdIncluded = "Device id included";
         private const string AccessTokenOmitted = "Access token omitted";
         private const string RefreshTokenOmitted = "Refresh token omitted";
-        private const string DeviceIdOmitted = "Device id omitted";
 
         protected override void Setup()
         {
@@ -48,10 +45,10 @@ namespace RotmgleWebApiTests.IntegrationTests
         public async Task UnauthorizedRequestToUnsecuredEndpoint_Returns200()
         {
             //Arrange
-            Mock<IItemService> itemsServiceMock = new Mock<IItemService>();
+            Mock<IItemService> itemsServiceMock = new();
             itemsServiceMock
                 .Setup(service => service.FindAllAsync(It.IsAny<string>(), It.IsAny<bool>()))
-                .Returns(Task.FromResult((IReadOnlyList<Item>)new List<Item>()));
+                .Returns(Task.FromResult((IEnumerable<Item>)new List<Item>()));
             ArrangeServices(services =>
             {
                 services.AddSingleton(itemsServiceMock.Object);
@@ -89,7 +86,8 @@ namespace RotmgleWebApiTests.IntegrationTests
                 ArrangeAuthenticationValidator(isValid: true);
             ArrangeServices(services =>
             {
-                services.AddAuthenticationService(validator);
+                services.AddAuthenticationService()
+                    .AddValidator(validator);
             });
             HttpClient client = GetClient();
 
@@ -108,7 +106,8 @@ namespace RotmgleWebApiTests.IntegrationTests
                 ArrangeAuthenticationValidator(isValid: false);
             ArrangeServices(services =>
             {
-                services.AddAuthenticationService(authenValidator);
+                services.AddAuthenticationService()
+                    .AddValidator(authenValidator);
             });
             HttpClient client = GetClient();
 
@@ -123,10 +122,10 @@ namespace RotmgleWebApiTests.IntegrationTests
         public async Task SelfProviderAuthenticateRequest_ReturnsNotAuthenticatedResponse()
         {
             //Arrange
-            AuthenticationPermit permit = new AuthenticationPermit
+            AuthenticationPermit permit = new()
             {
                 Provider = IdentityProvider.Self,
-                IdToken = "WhateverToken"
+                IdToken = "WhateverToken",
             };
             HttpClient client = GetClient();
 
@@ -145,7 +144,8 @@ namespace RotmgleWebApiTests.IntegrationTests
                 ArrangeAuthenticationValidator(isValid: true);
             ArrangeServices(services =>
             {
-                services.AddAuthenticationService(authenValidator);
+                services.AddAuthenticationService()
+                    .AddValidator(authenValidator);
             });
             HttpClient client = GetClient();
 
@@ -153,20 +153,20 @@ namespace RotmgleWebApiTests.IntegrationTests
             (HttpResponseMessage authenResponse, AuthenticationResponse? authenModel) =
                 await Authenticate(client, permit);
 
-            HttpRequestMessage securedEndpointRequest = new HttpRequestMessage
+            HttpRequestMessage securedEndpointRequest = new()
             {
                 Method = HttpMethod.Get,
-                RequestUri = new Uri("GetTries", UriKind.Relative)
+                RequestUri = new Uri("GetTries", UriKind.Relative),
             };
-            securedEndpointRequest.Headers.Authorization = AuthenticationHeaderValue.Parse(
-                $"Bearer {authenModel?.AccessToken}");
+            securedEndpointRequest.Headers.Authorization = new AuthenticationHeaderValue(
+                "Bearer", authenModel?.AccessToken);
 
             HttpResponseMessage securedEndpointResponse = await client.SendAsync(securedEndpointRequest);
 
             //Assert
             Assert.Multiple(() =>
             {
-                AssertAuthenticatedResponse(authenResponse, authenModel);
+                AssertAuthenticatedResponse(authenResponse, authenModel, suffix: "auth");
                 Assert.That(
                     securedEndpointResponse.StatusCode,
                     Is.EqualTo(HttpStatusCode.OK),
@@ -175,52 +175,43 @@ namespace RotmgleWebApiTests.IntegrationTests
         }
 
         [Test]
-        public async Task LoggedOutRequestToSecuredEndpoint_Returns401()
+        public async Task LoggedOutRefreshTokenRequest_Returns401()
         {
             //Arrange
             (IAuthenticationValidator authenValidator, AuthenticationPermit permit) =
                 ArrangeAuthenticationValidator(isValid: true);
             ArrangeServices(services =>
             {
-                services.AddAuthenticationService(authenValidator);
+                services.AddAuthenticationService()
+                    .AddValidator(authenValidator);
             });
             HttpClient client = GetClient();
 
             //Act
             (HttpResponseMessage authenResponse, AuthenticationResponse? authenModel) =
                 await Authenticate(client, permit);
-            AuthenticationHeaderValue authorizationHeader = AuthenticationHeaderValue.Parse(
-                $"Bearer {authenModel?.AccessToken}");
 
-            HttpRequestMessage logoutRequest = new HttpRequestMessage
+            HttpRequestMessage logoutRequest = new()
             {
                 Method = HttpMethod.Post,
-                RequestUri = new Uri("Authentication/Logout", UriKind.Relative)
+                RequestUri = new Uri("Authentication/Logout", UriKind.Relative),
             };
-            logoutRequest.Headers.Authorization = authorizationHeader;
-
-            HttpRequestMessage securedEndpointRequest = new HttpRequestMessage
-            {
-                Method = HttpMethod.Get,
-                RequestUri = new Uri("GetTries", UriKind.Relative)
-            };
-            securedEndpointRequest.Headers.Authorization = authorizationHeader;
-
+            logoutRequest.Headers.Authorization = new AuthenticationHeaderValue(
+                "Bearer", authenModel?.AccessToken);
             HttpResponseMessage logoutResponse = await client.SendAsync(logoutRequest);
-            HttpResponseMessage securedEndpointResponse = await client.SendAsync(securedEndpointRequest);
+
+            (HttpResponseMessage refreshResponse, AuthenticationResponse? refreshModel) =
+                await RefreshToken(client, authenModel?.AccessToken, authenModel?.RefreshToken);
 
             //Assert
             Assert.Multiple(() =>
             {
-                AssertAuthenticatedResponse(authenResponse, authenModel);
+                AssertAuthenticatedResponse(authenResponse, authenModel, suffix: "auth");
                 Assert.That(
                     logoutResponse.StatusCode,
                     Is.EqualTo(HttpStatusCode.OK),
                     $"{AssertMessages.StatusCode} (logout)");
-                Assert.That(
-                    securedEndpointResponse.StatusCode,
-                    Is.EqualTo(HttpStatusCode.Unauthorized),
-                    $"{AssertMessages.StatusCode} (secured endpoint)");
+                AssertNotAuthenticatedResponse(refreshResponse, refreshModel, suffix: "refresh");
             });
         }
 
@@ -244,7 +235,9 @@ namespace RotmgleWebApiTests.IntegrationTests
 
             ArrangeServices(services =>
             {
-                services.AddAuthenticationService(googleValidator, discordValidator);
+                services.AddAuthenticationService()
+                    .AddValidator(googleValidator)
+                    .AddValidator(discordValidator);
             });
             HttpClient client = GetClient();
 
@@ -269,9 +262,9 @@ namespace RotmgleWebApiTests.IntegrationTests
                     new[]
                     {
                         (IdentityProvider.Google, googleIdentityId),
-                        (IdentityProvider.Discord, discordIdentityId)
+                        (IdentityProvider.Discord, discordIdentityId),
                     },
-                    PlayersServiceMock.Players.SingleOrDefault()?.Identities
+                    PlayerServiceMock.Players.SingleOrDefault()?.Identities
                         .Select(identity => (identity.Provider, identity.Id)),
                     "Single player has 2 authenticated identities");
             });
@@ -301,15 +294,36 @@ namespace RotmgleWebApiTests.IntegrationTests
             string? accessToken,
             AuthenticationPermit permit)
         {
-            HttpRequestMessage addIdentityRequest = new HttpRequestMessage
+            HttpRequestMessage addIdentityRequest = new()
             {
                 Method = HttpMethod.Post,
                 RequestUri = new Uri("Authentication/Authenticate", UriKind.Relative),
-                Content = JsonContent.Create(permit)
+                Content = JsonContent.Create(permit),
             };
-            addIdentityRequest.Headers.Authorization = AuthenticationHeaderValue.Parse(
-                $"Bearer {accessToken}");
+            addIdentityRequest.Headers.Authorization = new AuthenticationHeaderValue(
+                "Bearer", accessToken);
             HttpResponseMessage response = await client.SendAsync(addIdentityRequest);
+            AuthenticationResponse? model = await GetAuthenticationResponseModel(response);
+            return (response, model);
+        }
+
+        private static async Task<(HttpResponseMessage, AuthenticationResponse?)> RefreshToken(
+            HttpClient client,
+            string? accessToken,
+            string? refreshToken)
+        {
+            HttpRequestMessage refreshTokenRequest = new()
+            {
+                Method = HttpMethod.Post,
+                RequestUri = new Uri("Authentication/RefreshAccessToken", UriKind.Relative),
+                Content = new StringContent(
+                    $"\"{refreshToken}\"",
+                    Encoding.UTF8,
+                    "application/json"),
+            };
+            refreshTokenRequest.Headers.Authorization = new AuthenticationHeaderValue(
+                "Bearer", accessToken);
+            HttpResponseMessage response = await client.SendAsync(refreshTokenRequest);
             AuthenticationResponse? model = await GetAuthenticationResponseModel(response);
             return (response, model);
         }
@@ -334,21 +348,21 @@ namespace RotmgleWebApiTests.IntegrationTests
             IdentityProvider identityProvider = IdentityProvider.Google,
             string identityId = "TestIdentityId")
         {
-            AuthenticationPermit permit = new AuthenticationPermit
+            AuthenticationPermit permit = new()
             {
                 Provider = identityProvider,
-                IdToken = "ValidIdToken"
+                IdToken = "ValidIdToken",
             };
-            Identity identity = new Identity
+            Identity identity = new()
             {
                 Provider = identityProvider,
-                Id = identityId
+                Id = identityId,
             };
             const string name = "TestName";
-            AuthenticationValidatorResult result = isValid
-                ? AuthenticationValidatorResult.Valid(identity, name)
-                : AuthenticationValidatorResult.Invalid;
-            Mock<IAuthenticationValidator> validatorMock = new Mock<IAuthenticationValidator>();
+            Result<AuthenticationValidatorResult> result = isValid
+                ? new AuthenticationValidatorResult(identity, name)
+                : new Exception("Invalid id token");
+            Mock<IAuthenticationValidator> validatorMock = new();
             validatorMock
                 .SetupGet(validator => validator.IdentityProvider)
                 .Returns(identityProvider);
@@ -371,7 +385,7 @@ namespace RotmgleWebApiTests.IntegrationTests
                 Assert.That(
                     response.StatusCode,
                     Is.EqualTo(HttpStatusCode.OK),
-                    $"{AssertMessages.StatusCode} (authentication{suffix})");
+                    $"{AssertMessages.StatusCode}{suffix}");
                 Assert.That(
                     model,
                     Is.Not.Null,
@@ -388,10 +402,6 @@ namespace RotmgleWebApiTests.IntegrationTests
                     !string.IsNullOrWhiteSpace(model?.RefreshToken),
                     Is.True,
                     $"{RefreshTokenIncluded}{suffix}");
-                Assert.That(
-                    !string.IsNullOrWhiteSpace(model?.DeviceId),
-                    Is.True,
-                    $"{DeviceIdIncluded}{suffix}");
             });
         }
 
@@ -406,7 +416,7 @@ namespace RotmgleWebApiTests.IntegrationTests
                 Assert.That(
                     response.StatusCode,
                     Is.EqualTo(HttpStatusCode.OK),
-                    $"{AssertMessages.StatusCode} (authentication{suffix})");
+                    $"{AssertMessages.StatusCode}{suffix}");
                 Assert.That(
                     model,
                     Is.Not.Null,
@@ -423,10 +433,6 @@ namespace RotmgleWebApiTests.IntegrationTests
                     string.IsNullOrWhiteSpace(model?.RefreshToken),
                     Is.True,
                     $"{RefreshTokenOmitted}{suffix}");
-                Assert.That(
-                    string.IsNullOrWhiteSpace(model?.DeviceId),
-                    Is.True,
-                    $"{DeviceIdOmitted}{suffix}");
             });
         }
 

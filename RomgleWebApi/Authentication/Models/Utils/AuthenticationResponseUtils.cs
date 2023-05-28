@@ -16,7 +16,7 @@
         public static AuthenticationResponse ToResponse(this Result<AuthenticationResult> result)
         {
             if (result is Result<AuthenticationResult>.Ok ok) {
-                return ok.ToResponse();
+                return ok.Value.ToResponse();
             }
             return new AuthenticationResponse
             {

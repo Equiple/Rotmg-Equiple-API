@@ -12,17 +12,21 @@ using RotmgleWebApi.Items;
 using RotmgleWebApi.Complaints;
 using RotmgleWebApi;
 using Microsoft.Net.Http.Headers;
+using Hangfire;
+using Hangfire.Mongo;
+using Hangfire.Mongo.Migration.Strategies;
+using Hangfire.Mongo.Migration.Strategies.Backup;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-//builder.Services.AddHangfire(configuration => configuration
-//    .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
-//    .UseSimpleAssemblyNameTypeSerializer()
-//    .UseRecommendedSerializerSettings());
+builder.Services.AddHangfire(configuration => configuration
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings());
 
-//builder.Services.AddHangfireServer();
+builder.Services.AddHangfireServer();
 
 const string authenticationScheme = "Bearer";
 builder.Services.AddAuthentication(authenticationScheme)
@@ -106,19 +110,19 @@ StaticRegistrationHelper.ProdOnce("Startup", () =>
     BsonClassMapInitializer.Initialize();
 
     //hangfire
-    //var migrationOptions = new MongoMigrationOptions
-    //{
-    //    MigrationStrategy = new MigrateMongoMigrationStrategy(),
-    //    BackupStrategy = new CollectionMongoBackupStrategy(),
-    //};
-    //GlobalConfiguration.Configuration.UseMongoStorage(
-    //    builder.Configuration.GetSection("Hangfire")["ConnectionString"],
-    //    new MongoStorageOptions
-    //    {
-    //        MigrationOptions = migrationOptions,
-    //        CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.TailNotificationsCollection
-    //    });
-    //RecurringJobInitializer.Initialize();
+    var migrationOptions = new MongoMigrationOptions
+    {
+        MigrationStrategy = new MigrateMongoMigrationStrategy(),
+        BackupStrategy = new CollectionMongoBackupStrategy(),
+    };
+    GlobalConfiguration.Configuration.UseMongoStorage(
+        builder.Configuration.GetSection("Hangfire")["ConnectionString"],
+        new MongoStorageOptions
+        {
+            MigrationOptions = migrationOptions,
+            CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.TailNotificationsCollection
+        });
+    RecurringJobInitializer.Initialize();
 });
 
 var app = builder.Build();

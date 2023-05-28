@@ -1,8 +1,8 @@
-﻿using RomgleWebApi.Player.Models;
+﻿using RotmgleWebApi.Players;
 
 namespace RotmgleWebApiTests.Mocks.Services
 {
-    internal interface IPlayersServiceMock
+    internal interface IPlayerServiceMock
     {
         IReadOnlyList<Player> Players { get; }
 

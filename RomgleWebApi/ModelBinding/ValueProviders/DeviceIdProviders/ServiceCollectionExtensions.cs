@@ -1,4 +1,6 @@
-﻿namespace RotmgleWebApi.ModelBinding
+﻿using Microsoft.Extensions.DependencyInjection.Extensions;
+
+namespace RotmgleWebApi.ModelBinding
 {
     public static class ServiceCollectionExtensions
     {
@@ -6,6 +8,7 @@
             this IServiceCollection services,
             string defaultDeviceId)
         {
+            services.RemoveAll<IDeviceIdProvider>();
             services.AddSingleton<IDeviceIdProviderCollection, DeviceIdProviderCollection>(
                 s => new DeviceIdProviderCollection(
                     s.GetServices<IDeviceIdProvider>(),
@@ -54,6 +57,12 @@
             public IDeviceIdProviderCollectionBuilder Add<T>() where T : class, IDeviceIdProvider
             {
                 _services.AddSingleton<IDeviceIdProvider, T>();
+                return this;
+            }
+
+            public IDeviceIdProviderCollectionBuilder Add<T>(T provider) where T : class, IDeviceIdProvider
+            {
+                _services.AddSingleton(provider);
                 return this;
             }
         }

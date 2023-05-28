@@ -60,7 +60,7 @@ namespace RotmgleWebApi.Authentication
                     throw new NotSupportedException();
             }
 
-            ClaimsIdentity identity = new(claims);
+            ClaimsIdentity identity = new(claims, Scheme.Name);
             ClaimsPrincipal principal = new(identity);
             AuthenticationTicket ticket = new(principal, Scheme.Name);
             return AuthenticateResult.Success(ticket);

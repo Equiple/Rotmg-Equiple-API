@@ -5,7 +5,6 @@ using RotmgleWebApi.ModelBinding;
 
 namespace RotmgleWebApi.Controllers
 {
-    [AllowAnonymous]
     [ApiController]
     [Route("/complaints")]
     public class ComplaintController : ControllerBase
@@ -21,12 +20,14 @@ namespace RotmgleWebApi.Controllers
             _logger = logger;
         }
 
+        [AllowAnonymous]
         [HttpPost("FileComplaint")]
         public async Task<bool> FileComplaint(string fingerprint, string email, string complaint)
         {
             return await _complaintService.FileComplaintAsync(fingerprint, email, complaint);
         }
 
+        [Authorize]
         [HttpPost("RemoveComplaint")]
         public async Task RemoveComplaint(string complaintId)
         {
