@@ -3,10 +3,10 @@
     public static class StringUtils
     {
         public static readonly List<string> DefaultNames =
-            GetListFromFile(@"E:\Projects\.other stuff\RomgleWebApi\RomgleWebApi\Assets\DefaultNames.txt");
+            GetListFromFile(@"Assets\DefaultNames.txt");
 
         public static readonly List<string> IgnoredWords =
-            GetListFromFile(@"E:\Projects\.other stuff\RomgleWebApi\RomgleWebApi\Assets\IgnoredWords.txt");
+            GetListFromFile(@"Assets\IgnoredWords.txt");
 
         /// <summary>
         /// Gets a list from specified text document.
@@ -17,7 +17,7 @@
             {
                 throw new Exception("Given file is not a text document.");
             }
-            List<string> list = new List<string>();
+            List<string> list = new();
             foreach (string line in File.ReadLines(path))
             {
                 list.Add(line);
@@ -36,8 +36,8 @@
             string result = "";
             char[] consolants = "qwrtpsdfghjklzxcvbnm".ToCharArray();
             char[] vowels = "eyuioa".ToCharArray();
-            List<string> syllables = new List<string>();
-            Random random = new Random();
+            List<string> syllables = new();
+            Random random = new();
             foreach (char cons in consolants)
             {
                 foreach (char vow in vowels)
@@ -62,9 +62,9 @@
         /// </returns>
         public static List<string> GenerateRandomListOfStrings()
         {
-            Random random = new Random();
+            Random random = new();
             int length = random.Next(1, 8);
-            List<string> randomList = new List<string>();
+            List<string> randomList = new();
             for (int i = 0; i < length; i++)
             {
                 randomList.Add(GenerateRandomNameLookingString());
@@ -78,7 +78,7 @@
         /// <returns></returns>
         public static string GetRandomDefaultName()
         {
-            Random random = new Random();
+            Random random = new();
             return DefaultNames[random.Next(DefaultNames.Count)];
         }
     }

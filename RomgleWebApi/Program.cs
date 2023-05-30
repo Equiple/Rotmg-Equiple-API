@@ -104,7 +104,7 @@ builder.Services.AddSwaggerGen(options =>
 StaticRegistrationHelper.ProdOnce("Startup", () =>
 {
     //mongo
-    ConventionPack mongoConventions = new ConventionPack();
+    ConventionPack mongoConventions = new();
     mongoConventions.Add(new EnumRepresentationConvention(BsonType.String));
     ConventionRegistry.Register("MongoDbConvention", mongoConventions, _ => true);
     BsonClassMapInitializer.Initialize();

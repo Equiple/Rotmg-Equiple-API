@@ -162,8 +162,8 @@ namespace RotmgleWebApi.Players
                         && game.IsEnded
                         && game.GameResult == GameResult.Won)
                     .GuessItemIds.Count))
-                .OrderByDescending(item => item.dailyGuesses)
-                .ThenByDescending(item => item.player.DailyStats.CurrentStreak);
+                .OrderBy(x => x.dailyGuesses)
+                .ThenByDescending(x => x.player.DailyStats.CurrentStreak);
             PlayerProfile[] profiles = await Task.WhenAll(intermediatePlayers
                 .Take(10)
                 .Select(item => item.player
