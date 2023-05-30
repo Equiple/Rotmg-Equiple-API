@@ -12,9 +12,9 @@ namespace RotmgleWebApi.Games
 
         public int Tries { get; set; }
 
-        public string Anagram { get; set; }
+        public string? Anagram { get; set; }
 
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         public Item TargetItem { get; set; }
     }

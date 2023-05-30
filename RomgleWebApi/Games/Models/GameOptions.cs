@@ -10,9 +10,9 @@ namespace RotmgleWebApi.Games
 
         public List<Hints> AllHints { get; set; }
 
-        public string Anagram { get; set; }
+        public string? Anagram { get; set; }
 
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         public bool ReskinsExcluded { get; set; }
     }

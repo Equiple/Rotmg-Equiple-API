@@ -6,6 +6,8 @@
 
         public string TargetItemId { get; set; }
 
+        public string Anagram { get; set; }
+
         public List<string> GuessItemIds { get; set; }
 
         public DateAndTime StartDate { get; set; }

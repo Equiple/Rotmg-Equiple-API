@@ -44,7 +44,7 @@ namespace RotmgleWebApi.Controllers
         public async Task<AuthenticationResponse> RefreshAccessToken(
             [UserId] string playerId,
             [DeviceId] string deviceId,
-            [FromBody] string refreshToken)
+            [FromQuery] string refreshToken)
         {
             Result<AuthenticationResult> result = await _authenticationService.RefreshAccessTokenAsync(
                 playerId,

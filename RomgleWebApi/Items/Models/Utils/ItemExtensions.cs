@@ -77,12 +77,8 @@ namespace RotmgleWebApi.Items
         /// <summary>
         /// 
         /// </summary>
-        public static string GenerateAnagramIfEligible(this Item item, int hintsCount)
+        public static string GenerateAnagram(this Item item)
         {
-            if (hintsCount < 3)
-            {
-                return "???";
-            }
             string name = item.Name
                 .RemoveSymbols(",.'`[]{}()-*_:;\"!?")
                 .ToLower();
@@ -105,15 +101,6 @@ namespace RotmgleWebApi.Items
                 }
             }
             return anagram;
-        }
-
-        public static string GetDescriptionIfEligible(this Item item, int hintsCount)
-        {
-            if (hintsCount < 4)
-            {
-                return "???";
-            }
-            else return item.Description;
         }
 
         #endregion public methods

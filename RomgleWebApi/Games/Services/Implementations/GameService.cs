@@ -63,7 +63,7 @@ namespace RotmgleWebApi.Games
                 {
                     newItem = await _itemService.GetRandomItemAsync(reskinsExcluded);
                 }
-                currentGame = CreateNewGame(newItem.Id, mode, reskinsExcluded);
+                currentGame = CreateNewGame(newItem, mode, reskinsExcluded);
                 player.CurrentGame = currentGame;
             }
             //TODO: Guest
@@ -88,8 +88,8 @@ namespace RotmgleWebApi.Games
             {
                 int hintsCount = result.Hints.CountCorrect();
                 result.Status = GuessStatus.NotGuessed;
-                result.Anagram = target.GenerateAnagramIfEligible(hintsCount);
-                result.Description = target.GetDescriptionIfEligible(hintsCount);
+                result.Anagram = GetAnagramIfEligible(currentGame, hintsCount);
+                result.Description = GetDescriptionIfEligible(target, hintsCount);
             }
             return result;
         }
@@ -145,8 +145,8 @@ namespace RotmgleWebApi.Games
                 Mode = player.CurrentGame.Mode,
                 Guesses = await GetGuessesInternalAsync(playerId),
                 AllHints = allHints,
-                Anagram = item.GenerateAnagramIfEligible(hintsCount),
-                Description = item.GetDescriptionIfEligible(hintsCount),
+                Anagram = GetAnagramIfEligible(player.CurrentGame, hintsCount),
+                Description = GetDescriptionIfEligible(item, hintsCount),
                 ReskinsExcluded = player.CurrentGame.ReskingExcluded,
             };
             return gameOptions;
@@ -158,50 +158,18 @@ namespace RotmgleWebApi.Games
             await _playerService.UpdatePlayerScoreAsync(player, GameResult.Lost);
         }
 
-        //public async Task<string> SendReportMailAsync(string author, string complaint)
-        //{
-        //    ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-        //    MailAddress to = new MailAddress(_configuration.GetSection("SmtpServer")["Mail"]);
-        //    MailMessage message = new MailMessage(to, to);
-        //    string subject = "";
-        //    if (complaint.Length < 20)
-        //    {
-        //        subject = complaint;
-        //    }
-        //    else subject = complaint.Substring(0, 19);
-        //    message.Subject = $"{subject}";
-        //    message.Body = $"{complaint}\n\nSent by {author}.";
-        //    SmtpClient client = new SmtpClient(_configuration.GetSection("SmtpServer")["RelayAdress"], 
-        //        _configuration.GetSection("SmtpServer")["TlsPort"].ParseInt() ?? 0)
-        //    {
-        //        UseDefaultCredentials = false,
-        //        Credentials = new NetworkCredential(_configuration.GetSection("SmtpServer")["Mail"], 
-        //            _configuration.GetSection("SmtpServer")["Pass"]),
-        //        TargetName = $"STARTTLS/{_configuration.GetSection("SmtpServer")["RelayAdress"]}",
-        //        EnableSsl = true
-        //    };
-        //    try
-        //    {
-        //        client.Send(message);
-        //    }
-        //    catch (SmtpException ex)
-        //    {
-        //        Console.WriteLine(ex.ToString());
-        //    }
-        //    return "success";
-        //}
-
         #endregion
 
         #region private methods
 
-        private static Game CreateNewGame(string targetItemId, Gamemode mode, bool reskinsExcluded)
+        private static Game CreateNewGame(Item targetItem, Gamemode mode, bool reskinsExcluded)
         {
             Game game = new()
             {
                 StartDate = DateTime.UtcNow,
-                TargetItemId = targetItemId,
+                TargetItemId = targetItem.Id,
                 GuessItemIds = new List<string>(),
+                Anagram = targetItem.GenerateAnagram(),
                 IsEnded = false,
                 ReskingExcluded = reskinsExcluded,
                 Mode = mode,
@@ -250,8 +218,6 @@ namespace RotmgleWebApi.Games
                 return new Hints();
             }
             Item target = await _itemService.GetAsync(currentPlayer.CurrentGame.TargetItemId);
-            //IEnumerable<Item> items = await _itemsService.FindAllAsync("", reskinsExcluded: false);
-            //double maxDistance = GetMaxDistance(items); 
             Hints hints = new()
             {
                 Tier = GetBinaryHint(item => item.Tier + item.Reskin),
@@ -408,6 +374,23 @@ namespace RotmgleWebApi.Games
             }
         }
 
+        private static string? GetAnagramIfEligible(Game game, int hintsCount)
+        {
+            if(hintsCount < 3)
+            {
+                return null;
+            }
+            return game.Anagram;
+        }
+
+        private static string? GetDescriptionIfEligible(Item item, int hintsCount) 
+        {
+            if (hintsCount < 4)
+            {
+                return null;
+            }
+            return item.Description;
+        }
         #endregion
     }
 }

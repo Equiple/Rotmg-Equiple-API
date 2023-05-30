@@ -16,7 +16,7 @@ namespace RotmgleWebApi.Games
             {
                 statistic.BestStreak = statistic.CurrentStreak;
             }
-            if (tries < statistic.BestRun)
+            if (!statistic.BestRun.HasValue || tries < statistic.BestRun.Value)
             {
                 statistic.BestRun = tries;
                 statistic.BestGuessItemId = guessId;
@@ -54,7 +54,7 @@ namespace RotmgleWebApi.Games
             {
                 GameStatistic = stats,
                 BestGuessItem = item,
-            };
+            };  
             return detailedStats;
         }
 

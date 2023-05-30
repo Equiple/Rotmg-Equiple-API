@@ -25,7 +25,6 @@ namespace RotmgleWebApi.Items
         {
             searchInput = searchInput.ToLower();
             List<string> searchTags = searchInput.Split(' ').ToList();
-            //List<Item> searchResult = await _itemsCollection.AsQueryable().Where(x => x.Name.ToLower().Contains(searchInput)).ToListAsync();
             IMongoQueryable<Item> searchResult = _itemCollection.AsQueryable();
             if (searchInput == "all")
             {
