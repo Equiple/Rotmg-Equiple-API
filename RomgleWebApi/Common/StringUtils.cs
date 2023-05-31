@@ -3,10 +3,10 @@
     public static class StringUtils
     {
         public static readonly List<string> DefaultNames =
-            GetListFromFile(@"Assets\DefaultNames.txt");
+            GetListFromFile(@"Assets/DefaultNames.txt");
 
         public static readonly List<string> IgnoredWords =
-            GetListFromFile(@"Assets\IgnoredWords.txt");
+            GetListFromFile(@"Assets/IgnoredWords.txt");
 
         /// <summary>
         /// Gets a list from specified text document.
