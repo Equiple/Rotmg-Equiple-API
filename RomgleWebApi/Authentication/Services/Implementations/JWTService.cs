@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using RotmgleWebApi.Players;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -20,11 +21,11 @@ namespace RotmgleWebApi.Authentication
             _logger = logger;
         }
 
-        public string GenerateAccessToken(string playerId, string deviceId)
+        public string GenerateAccessToken(Player player, string deviceId)
         {
             ClaimsIdentity subject = new(new[]
             {
-                new Claim(CustomClaimNames.UserId, playerId),
+                new Claim(CustomClaimNames.UserId, player.Id),
                 new Claim(CustomClaimNames.DeviceId, deviceId),
             });
             SymmetricSecurityKey securityKey = new(Encoding.ASCII.GetBytes(_settings.SecretKey));

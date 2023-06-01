@@ -98,7 +98,12 @@ namespace RotmgleWebApi.Authentication
             string refreshToken)
         {
             Player player = await _playerService.GetAsync(playerId);
-            Device device = player.GetDevice(deviceId);
+            Device? device = player.GetDevice(deviceId);
+
+            if (device == null)
+            {
+                return new Exception("Device not found");
+            }
 
             if (device.RefreshToken == null || device.RefreshToken.IsRevoked())
             {
@@ -128,8 +133,8 @@ namespace RotmgleWebApi.Authentication
 
         private async Task LogoutAsync(Player player, string deviceId)
         {
-            Device device = player.GetDevice(deviceId);
-            if (device.RefreshToken != null)
+            Device? device = player.GetDevice(deviceId);
+            if (device?.RefreshToken != null)
             {
                 device.RefreshToken.Revoke();
             }
@@ -138,9 +143,9 @@ namespace RotmgleWebApi.Authentication
 
         private async Task<AuthenticationResult> GenerateNewTokensAndUpdatePlayer(Player player, string deviceId)
         {
-            string accessToken = _accessTokenService.GenerateAccessToken(player.Id, deviceId);
+            string accessToken = _accessTokenService.GenerateAccessToken(player, deviceId);
             RefreshToken refreshToken = _accessTokenService.GenerateRefreshToken();
-            Device device = player.GetDevice(deviceId);
+            Device device = player.GetOrCreateDevice(deviceId);
             device.RefreshToken = refreshToken;
             await _playerService.UpdateAsync(player);
             return new AuthenticationResult(accessToken, refreshToken.Token);

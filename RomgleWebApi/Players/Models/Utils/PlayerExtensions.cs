@@ -25,9 +25,23 @@ namespace RotmgleWebApi.Players
             player.Identities.Add(identity);
         }
 
-        public static Device GetDevice(this Player player, string deviceId)
+        public static Device? GetDevice(this Player player, string deviceId)
         {
-            Device device = player.Devices.First(d => d.Id == deviceId);
+            Device? device = player.Devices.FirstOrDefault(d => d.Id == deviceId);
+            return device;
+        }
+
+        public static Device GetOrCreateDevice(this Player player, string deviceId)
+        {
+            Device? device = player.GetDevice(deviceId);
+            if (device == null)
+            {
+                device = new Device
+                {
+                    Id = deviceId,
+                };
+                player.Devices.Add(device);
+            }
             return device;
         }
 

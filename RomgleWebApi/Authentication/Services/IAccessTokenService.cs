@@ -1,10 +1,11 @@
-﻿using System.Security.Claims;
+﻿using RotmgleWebApi.Players;
+using System.Security.Claims;
 
 namespace RotmgleWebApi.Authentication
 {
     public interface IAccessTokenService
     {
-        string GenerateAccessToken(string playerId, string deviceId);
+        string GenerateAccessToken(Player player, string deviceId);
 
         RefreshToken GenerateRefreshToken();
 
