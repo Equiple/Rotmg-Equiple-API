@@ -12,6 +12,7 @@ RUN dotnet publish "RotmgleWebApi.csproj" -c Release -o /app/publish /p:UseAppHo
 FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+COPY RomgleWebApi/Assets Assets
 ENV ASPNETCORE_ENVIRONMENT=Production
-ENV ASPNETCORE_URLS=http://+:80
+ENV ASPNETCORE_URLS=http://+:8080
 ENTRYPOINT ["dotnet", "RotmgleWebApi.dll"]
