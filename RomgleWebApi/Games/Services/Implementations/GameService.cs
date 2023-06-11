@@ -5,6 +5,7 @@ using RotmgleWebApi.Dailies;
 using RotmgleWebApi.Players;
 using RotmgleWebApi.Items;
 using RotmgleWebApi.Complaints;
+using NUnit.Framework;
 
 namespace RotmgleWebApi.Games
 {
@@ -86,7 +87,8 @@ namespace RotmgleWebApi.Games
             }
             else
             {
-                int hintsCount = result.Hints.CountCorrect();
+                List<Hints> allHints = await GetHintsInternalAsync(playerId);
+                int hintsCount = await CountCorrectHints(allHints);
                 result.Status = GuessStatus.NotGuessed;
                 result.Anagram = GetAnagramIfEligible(currentGame, hintsCount);
                 result.Description = GetDescriptionIfEligible(target, hintsCount);
@@ -139,7 +141,7 @@ namespace RotmgleWebApi.Games
             }
             Item item = await _itemService.GetAsync(player.CurrentGame.TargetItemId);
             List<Hints> allHints = await GetHintsInternalAsync(playerId);
-            int hintsCount = allHints.CountCorrect();
+            int hintsCount = await CountCorrectHints(allHints);
             GameOptions gameOptions = new()
             {
                 Mode = player.CurrentGame.Mode,
@@ -192,6 +194,36 @@ namespace RotmgleWebApi.Games
             return guesses;
         }
 
+        private async Task<int> CountCorrectHints(List<Hints> allHints)
+        {
+            bool[] counter = new bool[5];
+            foreach(Hints hints in allHints)
+            {
+                if (hints.Tier == Hint.Correct)
+                {
+                    counter[0] = true;
+                }
+                if(hints.ColorClass == ColorTranslator.ToHtml(ColorUtils.defaultGreen))
+                {
+                    counter[1] = true;
+                }
+                if (hints.XpBonus == Hint.Correct)
+                {
+                    counter[2] = true;
+                }
+                if(hints.Feedpower == Hint.Correct)
+                {
+                    counter[3] = true;
+                }
+                if(hints.Type == Hint.Correct)
+                {
+                    counter[4] = true;
+                }
+            }
+            int count = counter.Count(x => x);
+            return count;
+        }
+
         private async Task<List<Hints>> GetHintsInternalAsync(string playerId)
         {
             Player player = await _playerService.GetAsync(playerId);
@@ -224,8 +256,8 @@ namespace RotmgleWebApi.Games
                 Type = GetBinaryHint(item => item.Type),
                 XpBonus = GetHint(item => item.XpBonus),
                 Feedpower = GetHint(item => item.Feedpower),
-                DominantColor = GetColorHint(item => item.DominantColor),
-                ColorClass = GetClassBasedColorHint(item => item.ColorClass)
+                DominantColor = "",
+                ColorClass = GetColorHint(item => item.ColorClass)
             };
             return hints;
 
@@ -255,8 +287,8 @@ namespace RotmgleWebApi.Games
             {
                 string guessProperty = hintProperty.Invoke(guess);
                 string targetProperty = hintProperty.Invoke(target);
-                Color targetColor = Color.FromName(targetProperty);
-                Color guessColor = Color.FromName(guessProperty);
+                Color targetColor = ColorTranslator.FromHtml(targetProperty);
+                Color guessColor = ColorTranslator.FromHtml(guessProperty);
                 Color result = GetColorHintLAB(targetColor, guessColor);
                 return ColorTranslator.ToHtml(result);
             }
