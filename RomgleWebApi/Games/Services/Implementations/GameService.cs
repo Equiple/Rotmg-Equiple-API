@@ -57,6 +57,7 @@ namespace RotmgleWebApi.Games
                 Item newItem;
                 if (mode == Gamemode.Daily)
                 {
+                    reskinsExcluded = false;
                     Daily dailyItem = await _dailyService.GetAsync();
                     newItem = await _itemService.GetAsync(dailyItem.TargetItemId);
                 }
@@ -67,7 +68,6 @@ namespace RotmgleWebApi.Games
                 currentGame = CreateNewGame(newItem, mode, reskinsExcluded);
                 player.CurrentGame = currentGame;
             }
-            //TODO: Guest
             Item target = await _itemService.GetAsync(currentGame.TargetItemId);
             currentGame.GuessItemIds.Add(guessId);
             await _playerService.UpdateAsync(player);
@@ -84,7 +84,7 @@ namespace RotmgleWebApi.Games
                 result.TargetItem = target;
                 await _playerService.UpdatePlayerScoreAsync(player, GameResult.Lost);
                 result.Status = GuessStatus.Lost;
-            }
+            }   
             else
             {
                 List<Hints> allHints = await GetHintsInternalAsync(playerId);

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RotmgleWebApi.Dailies;
 using RotmgleWebApi.Games;
 using RotmgleWebApi.Items;
 using RotmgleWebApi.ModelBinding;
@@ -15,17 +16,20 @@ namespace RotmgleWebApi.Controllers
         private readonly IItemService _itemService;
         private readonly IPlayerService _playerService;
         private readonly IGameService _gameService;
+        private readonly IDailyService _dailyService;
         private readonly ILogger<GameController> _logger;
 
         public GameController(
             IItemService itemService,
             IPlayerService playerService,
             IGameService gameService,
+            IDailyService dailyService,
             ILogger<GameController> logger)
         {
             _itemService = itemService;
             _playerService = playerService;
             _gameService = gameService;
+            _dailyService = dailyService;
             _logger = logger;
         }
 
@@ -133,6 +137,12 @@ namespace RotmgleWebApi.Controllers
         public async Task<int> GetPlayerLeaderboardPlacement([UserId] string playerId, Gamemode mode)
         {
             return await _playerService.GetPlayerLeaderboardPlacementAsync(playerId, mode);
+        }
+
+        [HttpGet("GetDailyNumber")]
+        public async Task<int> GetDailyNumberAsync()
+        {
+            return await _dailyService.CountDailiesAsync();
         }
     }
 }

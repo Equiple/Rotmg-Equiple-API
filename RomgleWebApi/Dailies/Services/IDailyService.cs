@@ -3,5 +3,7 @@
     public interface IDailyService
     {
         Task<Daily> GetAsync();
+
+        Task<int> CountDailiesAsync();
     }
 }

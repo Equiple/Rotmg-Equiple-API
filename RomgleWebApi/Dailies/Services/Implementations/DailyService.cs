@@ -36,5 +36,11 @@ namespace RotmgleWebApi.Dailies
             }
             return daily;
         }
+
+        public async Task<int> CountDailiesAsync()
+        {
+            int count = (int) await _dailyCollection.CountDocumentsAsync(daily => true);
+            return count;
+        }
     }
 }
