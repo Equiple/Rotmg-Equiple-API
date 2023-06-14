@@ -1,4 +1,4 @@
-﻿using RotmgleWebApi.Authentication;
+﻿using RotmgleWebApi.AuthenticationImplementation;
 using RotmgleWebApi.Games;
 
 namespace RotmgleWebApi.Players
@@ -7,13 +7,11 @@ namespace RotmgleWebApi.Players
     {
         Task<Player> GetAsync(string playerId);
 
-        Task InvalidateExpiredDailyGamesAsync();
-
-        Task RemoveInactiveGuestAccountsAsync();
+        Task<Player?> GetOrDefaultAsync(string playerId);
 
         Task<Player?> GetByIdentityAsync(Identity identity);
 
-        Task<Player> CreateNewAsync(Identity identity, string deviceId, string? name = null);
+        Task<Player> CreateNewAsync(string? name, Identity identity);
 
         Task UpdateAsync(Player player);
 
@@ -34,5 +32,9 @@ namespace RotmgleWebApi.Players
         Task<int> GetPlayerLeaderboardPlacementAsync(string playerId, Gamemode mode);
 
         Task UpdatePlayerScoreAsync(Player player, GameResult result);
+
+        Task InvalidateExpiredDailyGamesAsync();
+
+        Task RemoveInactiveGuestAccountsAsync();
     }
 }

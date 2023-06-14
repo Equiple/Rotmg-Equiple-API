@@ -11,12 +11,12 @@ namespace RotmgleWebApi.Complaints
         private readonly IPlayerService _playerService;
 
         public ComplaintService(
-            IOptions<RotmgleDatabaseSettings> rotmgleDatabaseSettings,
+            IOptions<RotmgleDatabaseOptions> rotmgleDatabaseSettings,
             IPlayerService playerService)
         {
             _complaintCollection = MongoUtils.GetCollection<Complaint>(
                 rotmgleDatabaseSettings.Value,
-                x => x.ComplaintCollectionName);
+                rotmgleDatabaseSettings.Value.ComplaintCollectionName);
             _playerService = playerService;
         }
 

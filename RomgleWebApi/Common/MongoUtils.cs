@@ -5,13 +5,12 @@ namespace RotmgleWebApi
     public static class MongoUtils
     {
         public static IMongoCollection<T> GetCollection<T>(
-            RotmgleDatabaseSettings settings,
-            Func<RotmgleDatabaseSettings, string> collectionName)
+            IMongoDatabaseOptions options,
+            string collectionName)
         {
-            MongoClient client = new(settings.ConnectionString);
-            IMongoDatabase db = client.GetDatabase(settings.DatabaseName);
-            string colName = collectionName.Invoke(settings);
-            IMongoCollection<T> collection = db.GetCollection<T>(colName);
+            MongoClient client = new(options.ConnectionString);
+            IMongoDatabase db = client.GetDatabase(options.DatabaseName);
+            IMongoCollection<T> collection = db.GetCollection<T>(collectionName);
             return collection;
         }
     }

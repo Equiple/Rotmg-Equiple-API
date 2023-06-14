@@ -1,4 +1,4 @@
-﻿namespace RotmgleWebApiTests.Utils
+﻿namespace RotmgleWebApiTests
 {
     internal static class AssertMessages
     {

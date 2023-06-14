@@ -1,4 +1,4 @@
-﻿using RotmgleWebApi.Authentication;
+﻿using RotmgleWebApi.AuthenticationImplementation;
 using RotmgleWebApi.Games;
 
 namespace RotmgleWebApi.Players
@@ -16,8 +16,6 @@ namespace RotmgleWebApi.Players
         public DateAndTime LastSeen { get; set; }
 
         public List<Identity> Identities { get; set; }
-
-        public List<Device> Devices { get; set; }
 
         public GameStatistic NormalStats { get; set; }
 

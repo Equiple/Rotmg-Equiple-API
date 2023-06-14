@@ -1,11 +1,8 @@
 ﻿using System.Drawing;
 using MongoDB.Driver;
-using Microsoft.Extensions.Options;
 using RotmgleWebApi.Dailies;
 using RotmgleWebApi.Players;
 using RotmgleWebApi.Items;
-using RotmgleWebApi.Complaints;
-using NUnit.Framework;
 
 namespace RotmgleWebApi.Games
 {
@@ -14,23 +11,15 @@ namespace RotmgleWebApi.Games
         private readonly IItemService _itemService;
         private readonly IDailyService _dailyService;
         private readonly IPlayerService _playerService;
-        private readonly IConfiguration _configuration;
-        private readonly IMongoCollection<Complaint> _complaintCollection;
 
         public GameService(
-            IOptions<RotmgleDatabaseSettings> rotmgleDatabaseSettings,
             IItemService itemService,
             IDailyService dailyService,
-            IPlayerService playerService,
-            IConfiguration config)
+            IPlayerService playerService)
         {
             _itemService = itemService;
             _dailyService = dailyService;
             _playerService = playerService;
-            _configuration = config;
-            _complaintCollection = MongoUtils.GetCollection<Complaint>(
-                rotmgleDatabaseSettings.Value,
-                x => x.ComplaintCollectionName);
         }
 
         #region public methods
@@ -88,7 +77,7 @@ namespace RotmgleWebApi.Games
             else
             {
                 List<Hints> allHints = await GetHintsInternalAsync(playerId);
-                int hintsCount = await CountCorrectHints(allHints);
+                int hintsCount = CountCorrectHints(allHints);
                 result.Status = GuessStatus.NotGuessed;
                 result.Anagram = GetAnagramIfEligible(currentGame, hintsCount);
                 result.Description = GetDescriptionIfEligible(target, hintsCount);
@@ -141,7 +130,7 @@ namespace RotmgleWebApi.Games
             }
             Item item = await _itemService.GetAsync(player.CurrentGame.TargetItemId);
             List<Hints> allHints = await GetHintsInternalAsync(playerId);
-            int hintsCount = await CountCorrectHints(allHints);
+            int hintsCount = CountCorrectHints(allHints);
             GameOptions gameOptions = new()
             {
                 Mode = player.CurrentGame.Mode,
@@ -194,7 +183,7 @@ namespace RotmgleWebApi.Games
             return guesses;
         }
 
-        private async Task<int> CountCorrectHints(List<Hints> allHints)
+        private static int CountCorrectHints(List<Hints> allHints)
         {
             bool[] counter = new bool[5];
             foreach(Hints hints in allHints)

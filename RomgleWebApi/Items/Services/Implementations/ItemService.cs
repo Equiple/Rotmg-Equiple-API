@@ -8,11 +8,11 @@ namespace RotmgleWebApi.Items
     {
         private readonly IMongoCollection<Item> _itemCollection;
 
-        public ItemService(IOptions<RotmgleDatabaseSettings> rotmgleDatabaseSettings)
+        public ItemService(IOptions<RotmgleDatabaseOptions> rotmgleDatabaseSettings)
         {
             _itemCollection = MongoUtils.GetCollection<Item>(
                 rotmgleDatabaseSettings.Value,
-                x => x.ItemCollectionName);
+                rotmgleDatabaseSettings.Value.ItemCollectionName);
         }
 
         public async Task<Item> GetAsync(string itemId)

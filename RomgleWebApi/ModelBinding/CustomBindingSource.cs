@@ -11,12 +11,6 @@ namespace RotmgleWebApi.ModelBinding
             isGreedy: false,
             isFromRequest: true);
 
-        public static readonly CustomBindingSource DeviceId = new(
-            id: "DeviceId",
-            displayName: "BindingSource_DeviceId",
-            isGreedy: false,
-            isFromRequest: true);
-
         public CustomBindingSource(
             string id,
             string displayName,

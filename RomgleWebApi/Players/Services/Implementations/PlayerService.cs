@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
-using RotmgleWebApi.Authentication;
+using RotmgleWebApi.AuthenticationImplementation;
 using RotmgleWebApi.Games;
 using RotmgleWebApi.Items;
 
@@ -13,23 +13,29 @@ namespace RotmgleWebApi.Players
         private readonly IItemService _itemService;
 
         public PlayerService(
-            IOptions<RotmgleDatabaseSettings> rotmgleDatabaseSettings,
+            IOptions<RotmgleDatabaseOptions> rotmgleDatabaseSettings,
             IItemService itemService)
         {
             _playerCollection = MongoUtils.GetCollection<Player>(
                 rotmgleDatabaseSettings.Value,
-                x => x.PlayerCollectionName);
+                rotmgleDatabaseSettings.Value.PlayerCollectionName);
             _itemService = itemService;
         }
 
         #region public methods
 
-        public async Task<Player> GetAsync(string playerId)
+        public Task<Player> GetAsync(string playerId)
         {
-            Player player = await _playerCollection
+            return _playerCollection
                 .Find(player => player.Id == playerId)
                 .FirstAsync();
-            return player;
+        }
+
+        public Task<Player?> GetOrDefaultAsync(string playerId)
+        {
+            return _playerCollection
+                .Find(player => player.Id == playerId)
+                .FirstOrDefaultAsync();
         }
 
         public async Task InvalidateExpiredDailyGamesAsync()
@@ -48,7 +54,7 @@ namespace RotmgleWebApi.Players
         public async Task RemoveInactiveGuestAccountsAsync()
         {
             DateTime weekAgo = DateTime.UtcNow.Date.AddDays(-7);
-            await _playerCollection.DeleteManyAsync(player => player.Identities[0].Provider == IdentityProvider.Self
+            await _playerCollection.DeleteManyAsync(player => player.Identities[0].Provider == null
                     && player.LastSeen.Date < weekAgo);
         }
 
@@ -63,7 +69,7 @@ namespace RotmgleWebApi.Players
             return player;
         }
 
-        public async Task<Player> CreateNewAsync(Identity identity, string deviceId, string? name = null)
+        public async Task<Player> CreateNewAsync(string? name, Identity identity)
         {
             Player? existingPlayer = await GetByIdentityAsync(identity);
             if (existingPlayer != null)
@@ -72,10 +78,6 @@ namespace RotmgleWebApi.Players
             }
 
             name ??= StringUtils.GetRandomDefaultName();
-            Device device = new()
-            {
-                Id = deviceId,
-            };
             Player player = new()
             {
                 Name = name,
@@ -83,7 +85,6 @@ namespace RotmgleWebApi.Players
                 RegistrationDate = DateTime.UtcNow,
                 LastSeen = DateTime.UtcNow,
                 Identities = new List<Identity> { identity },
-                Devices = new List<Device> { device },
                 NormalStats = new GameStatistic(),
                 DailyStats = new GameStatistic(),
                 EndedGames = new List<Game>()
@@ -264,13 +265,12 @@ namespace RotmgleWebApi.Players
             {
                 Identity identity = new()
                 {
-                    Provider = IdentityProvider.Self,
+                    Provider = null,
                     Id = "knock_off"
                 };
                 Result<Player> createRes = await CreateNewAsync(
-                    identity,
-                    "knock_off",
-                    name: StringUtils.GenerateRandomNameLookingString());
+                    StringUtils.GenerateRandomNameLookingString(),
+                    identity);
                 if (createRes is Result<Player>.Ok playerRes)
                 {
                     players.Add(playerRes.Value);
