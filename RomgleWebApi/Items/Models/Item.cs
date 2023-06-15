@@ -1,6 +1,8 @@
-﻿namespace RotmgleWebApi.Items
+﻿using MongoDB.Bson;
+
+namespace RotmgleWebApi.Items
 {
-    public class Item
+    public class Item : IExtraElements
     {
         public string Id { get; set; }
 
@@ -35,5 +37,7 @@
         public string DominantColor { get; set; }
 
         public string ColorClass { get; set; }
+
+        public BsonDocument ExtraElements { get; set; }
     }
 }
