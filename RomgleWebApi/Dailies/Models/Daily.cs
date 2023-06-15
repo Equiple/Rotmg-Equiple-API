@@ -1,4 +1,5 @@
 ﻿using MongoDB.Bson;
+using System.Text.Json.Serialization;
 
 namespace RotmgleWebApi.Dailies
 {
@@ -10,6 +11,7 @@ namespace RotmgleWebApi.Dailies
 
         public string TargetItemId { get; set; }
 
+        [JsonIgnore]
         public BsonDocument ExtraElements { get; set; }
     }
 }
