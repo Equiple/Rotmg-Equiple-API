@@ -11,7 +11,7 @@ namespace RotmgleWebApi.Players
 
         Task<Player?> GetByIdentityAsync(Identity identity);
 
-        Task<Player> CreateNewAsync(string? name, Identity identity);
+        Task<Player> CreateNewAsync(string? name, Identity? identity);
 
         Task UpdateAsync(Player player);
 

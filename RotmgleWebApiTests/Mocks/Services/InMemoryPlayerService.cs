@@ -41,7 +41,7 @@ namespace RotmgleWebApiTests.Mocks
             return Task.FromResult(player);
         }
 
-        public Task<Player> CreateNewAsync(string? name, Identity identity)
+        public Task<Player> CreateNewAsync(string? name, Identity? identity)
         {
             Player player = new()
             {
@@ -50,11 +50,15 @@ namespace RotmgleWebApiTests.Mocks
                 Role = "user",
                 RegistrationDate = DateTime.UtcNow,
                 LastSeen = DateTime.UtcNow,
-                Identities = new List<Identity> { identity },
+                Identities = new List<Identity>(),
                 NormalStats = new GameStatistic(),
                 DailyStats = new GameStatistic(),
                 EndedGames = new List<Game>()
             };
+            if (identity != null)
+            {
+                player.Identities.Add(identity);
+            }
             _players.Add(player);
 
             return Task.FromResult(player);

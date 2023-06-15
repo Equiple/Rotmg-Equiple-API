@@ -25,9 +25,9 @@ namespace RotmgleWebApi.AuthenticationImplementation
             return player?.ToUser();
         }
 
-        public async Task<User<IdentityProvider>> CreateUserAsync(string? name, Identity<IdentityProvider> identity)
+        public async Task<User<IdentityProvider>> CreateUserAsync(string? name, Identity<IdentityProvider>? identity)
         {
-            Player player = await _playerService.CreateNewAsync(name, identity.ToIdentityModel());
+            Player player = await _playerService.CreateNewAsync(name, identity?.ToIdentityModel());
             return player.ToUser();
         }
 

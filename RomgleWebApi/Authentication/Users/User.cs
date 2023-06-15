@@ -6,6 +6,6 @@
         IReadOnlyList<Identity<TIdentityProvider>> Identities)
         where TIdentityProvider : struct, Enum
     {
-        public bool IsGuest => Identities.Any(identity => identity.IsGuest);
+        public bool IsGuest => Identities.Count == 0;
     }
 }

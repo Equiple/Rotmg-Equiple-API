@@ -33,10 +33,7 @@ namespace RotmgleWebApi.Authentication
             HttpContext context,
             TokenAuthenticationResultType resultType)
         {
-            Identity<TIdentityProvider> identity = new(
-                Provider: null,
-                Id: $"guest_{Guid.NewGuid()}");
-            User<TIdentityProvider> user = await _userService.CreateUserAsync(null, identity);
+            User<TIdentityProvider> user = await _userService.CreateUserAsync(null, null);
             (_, TokenAuthenticationResult result) = await CreateSession(resultType, user.Id, context);
             return result;
         }
@@ -91,19 +88,14 @@ namespace RotmgleWebApi.Authentication
             if (loggedUser != null)
             {
                 string name = loggedUser.Name;
-                IEnumerable<Identity<TIdentityProvider>> identities = loggedUser.Identities;
-                if (loggedUser.IsGuest)
+                if (loggedUser.IsGuest && validationRes.Name != null)
                 {
-                    if (validationRes.Name != null)
-                    {
-                        name = validationRes.Name;
-                    }
-                    identities = identities.Where(identity => !identity.IsGuest);
+                    name = validationRes.Name;
                 }
                 loggedUser = loggedUser with
                 {
                     Name = name,
-                    Identities = identities.Append(validationRes.Identity).ToList(),
+                    Identities = loggedUser.Identities.Append(validationRes.Identity).ToList(),
                 };
                 await _userService.UpdateUserAsync(loggedUser);
                 (_, result) = await CreateSession(permit.ResultType, loggedUser.Id, context);

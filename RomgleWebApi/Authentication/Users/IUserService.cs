@@ -7,7 +7,7 @@
 
         Task<User<TIdentityProvider>?> GetUserAsync(Identity<TIdentityProvider> identity);
 
-        Task<User<TIdentityProvider>> CreateUserAsync(string? name, Identity<TIdentityProvider> identity);
+        Task<User<TIdentityProvider>> CreateUserAsync(string? name, Identity<TIdentityProvider>? identity);
 
         Task UpdateUserAsync(User<TIdentityProvider> user);
 

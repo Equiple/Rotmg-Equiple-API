@@ -54,7 +54,7 @@ namespace RotmgleWebApi.Players
         public async Task RemoveInactiveGuestAccountsAsync()
         {
             DateTime weekAgo = DateTime.UtcNow.Date.AddDays(-7);
-            await _playerCollection.DeleteManyAsync(player => player.Identities[0].Provider == null
+            await _playerCollection.DeleteManyAsync(player => player.Identities.Count == 0
                     && player.LastSeen.Date < weekAgo);
         }
 
@@ -69,12 +69,15 @@ namespace RotmgleWebApi.Players
             return player;
         }
 
-        public async Task<Player> CreateNewAsync(string? name, Identity identity)
+        public async Task<Player> CreateNewAsync(string? name, Identity? identity)
         {
-            Player? existingPlayer = await GetByIdentityAsync(identity);
-            if (existingPlayer != null)
+            if (identity != null)
             {
-                throw new Exception($"Player with given identity {identity.Provider}:{identity.Id} already exists");
+                Player? existingPlayer = await GetByIdentityAsync(identity);
+                if (existingPlayer != null)
+                {
+                    throw new Exception($"Player with given identity {identity.Provider}:{identity.Id} already exists");
+                }
             }
 
             name ??= StringUtils.GetRandomDefaultName();
@@ -84,11 +87,15 @@ namespace RotmgleWebApi.Players
                 Role = "user",
                 RegistrationDate = DateTime.UtcNow,
                 LastSeen = DateTime.UtcNow,
-                Identities = new List<Identity> { identity },
+                Identities = new List<Identity>(),
                 NormalStats = new GameStatistic(),
                 DailyStats = new GameStatistic(),
                 EndedGames = new List<Game>()
             };
+            if (identity != null)
+            {
+                player.Identities.Add(identity);
+            }
             await _playerCollection.InsertOneAsync(player);
 
             return player;
@@ -263,14 +270,9 @@ namespace RotmgleWebApi.Players
             List<Player> players = new();
             for (int i = 0; i < amount; i++)
             {
-                Identity identity = new()
-                {
-                    Provider = null,
-                    Id = "knock_off"
-                };
                 Result<Player> createRes = await CreateNewAsync(
                     StringUtils.GenerateRandomNameLookingString(),
-                    identity);
+                    null);
                 if (createRes is Result<Player>.Ok playerRes)
                 {
                     players.Add(playerRes.Value);
