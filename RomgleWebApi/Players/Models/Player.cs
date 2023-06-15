@@ -1,9 +1,11 @@
-﻿using RotmgleWebApi.AuthenticationImplementation;
+﻿using RotmgleWebApi.Authentication;
+using MongoDB.Bson;
+using RotmgleWebApi.AuthenticationImplementation;
 using RotmgleWebApi.Games;
 
 namespace RotmgleWebApi.Players
 {
-    public class Player
+    public class Player : IExtraElements
     {
         public string Id { get; set; }
 
@@ -24,5 +26,7 @@ namespace RotmgleWebApi.Players
         public Game? CurrentGame { get; set; }
 
         public List<Game> EndedGames { get; set; }
+
+        public BsonDocument ExtraElements { get; set; }
     }
 }

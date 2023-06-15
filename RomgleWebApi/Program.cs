@@ -103,6 +103,7 @@ StaticRegistrationHelper.ProdOnce("Startup", () =>
     //mongo
     ConventionPack mongoConventions = new();
     mongoConventions.Add(new EnumRepresentationConvention(BsonType.String));
+    mongoConventions.Add(new NamedExtraElementsMemberConvention(nameof(IExtraElements.ExtraElements)));
     ConventionRegistry.Register("MongoDbConvention", mongoConventions, _ => true);
     BsonClassMapInitializer.Initialize();
 
