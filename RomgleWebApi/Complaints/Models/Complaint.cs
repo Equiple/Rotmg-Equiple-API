@@ -1,4 +1,5 @@
 ﻿using MongoDB.Bson;
+using System.Text.Json.Serialization;
 
 namespace RotmgleWebApi.Complaints
 {
@@ -14,6 +15,7 @@ namespace RotmgleWebApi.Complaints
 
         public string Body { get; set; }
 
+        [JsonIgnore]
         public BsonDocument ExtraElements { get; set; }
     }
 }

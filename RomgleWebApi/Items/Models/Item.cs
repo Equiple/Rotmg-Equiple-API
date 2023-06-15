@@ -1,4 +1,5 @@
 ﻿using MongoDB.Bson;
+using System.Text.Json.Serialization;
 
 namespace RotmgleWebApi.Items
 {
@@ -38,6 +39,7 @@ namespace RotmgleWebApi.Items
 
         public string ColorClass { get; set; }
 
+        [JsonIgnore]
         public BsonDocument ExtraElements { get; set; }
     }
 }

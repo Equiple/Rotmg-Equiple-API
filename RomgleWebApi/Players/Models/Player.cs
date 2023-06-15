@@ -2,6 +2,7 @@
 using MongoDB.Bson;
 using RotmgleWebApi.AuthenticationImplementation;
 using RotmgleWebApi.Games;
+using System.Text.Json.Serialization;
 
 namespace RotmgleWebApi.Players
 {
@@ -27,6 +28,7 @@ namespace RotmgleWebApi.Players
 
         public List<Game> EndedGames { get; set; }
 
+        [JsonIgnore]
         public BsonDocument ExtraElements { get; set; }
     }
 }
