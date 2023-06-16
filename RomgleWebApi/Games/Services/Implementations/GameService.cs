@@ -197,13 +197,13 @@ namespace RotmgleWebApi.Games
         private async Task<int> CountCorrectHints(List<Hints> allHints)
         {
             bool[] counter = new bool[5];
-            foreach(Hints hints in allHints)
+            foreach (Hints hints in allHints)
             {
                 if (hints.Tier == Hint.Correct)
                 {
                     counter[0] = true;
                 }
-                if(hints.ColorClass == ColorTranslator.ToHtml(ColorUtils.defaultGreen))
+                if (hints.ColorPalette.Any(x => x == Hint.Correct))
                 {
                     counter[1] = true;
                 }
@@ -211,11 +211,11 @@ namespace RotmgleWebApi.Games
                 {
                     counter[2] = true;
                 }
-                if(hints.Feedpower == Hint.Correct)
+                if (hints.Feedpower == Hint.Correct)
                 {
                     counter[3] = true;
                 }
-                if(hints.Type == Hint.Correct)
+                if (hints.Type == Hint.Correct)
                 {
                     counter[4] = true;
                 }
@@ -256,10 +256,26 @@ namespace RotmgleWebApi.Games
                 Type = GetBinaryHint(item => item.Type),
                 XpBonus = GetHint(item => item.XpBonus),
                 Feedpower = GetHint(item => item.Feedpower),
-                DominantColor = "",
-                ColorClass = GetColorHint(item => item.ColorClass)
+                ColorPalette = GetPaletteHint()
             };
             return hints;
+
+            List<Hint> GetPaletteHint()
+            {
+                List<Hint> hints = new();
+                foreach (string color in guess.ColorPalette)
+                {
+                    if (target.ColorPalette.Contains(color))
+                    {
+                        hints.Add(Hint.Correct);
+                    }
+                    else 
+                    {
+                        hints.Add(Hint.Wrong);
+                    } 
+                }
+                return hints;
+            }
 
             Hint GetHint(Func<Item, IComparable> hintProperty)
             {

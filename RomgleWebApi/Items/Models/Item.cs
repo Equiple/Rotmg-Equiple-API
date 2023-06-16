@@ -37,6 +37,8 @@ namespace RotmgleWebApi.Items
 
         public string DominantColor { get; set; }
 
+        public List<string> ColorPalette { get; set; }
+
         public string ColorClass { get; set; }
 
         [JsonIgnore]
