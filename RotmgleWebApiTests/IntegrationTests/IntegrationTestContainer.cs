@@ -4,9 +4,10 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using RotmgleWebApi;
+using RotmgleWebApi.Authentication;
 using RotmgleWebApi.Jobs;
 using RotmgleWebApi.Players;
-using RotmgleWebApiTests.Mocks.Services;
+using RotmgleWebApiTests.Mocks;
 
 namespace RotmgleWebApiTests.IntegrationTests
 {
@@ -14,6 +15,7 @@ namespace RotmgleWebApiTests.IntegrationTests
     {
         private WebApplicationFactory<Program>? _factory = null;
 
+        private readonly InMemorySessionService _sessionService = new();
         private readonly InMemoryPlayerService _playerService = new();
 
         protected IPlayerServiceMock PlayerServiceMock => _playerService;
@@ -22,6 +24,7 @@ namespace RotmgleWebApiTests.IntegrationTests
         public void BaseSetup()
         {
             StaticRegistrationHelper.SetTesting();
+            _sessionService.Clear();
             _playerService.SetInitialPlayers();
             Setup();
         }
@@ -66,6 +69,7 @@ namespace RotmgleWebApiTests.IntegrationTests
             {
                 builder.ConfigureTestServices(services =>
                 {
+                    services.AddSingleton<ISessionService>(_sessionService);
                     services.AddSingleton<IPlayerService>(_playerService);
 
                     GlobalConfiguration.Configuration.UseMemoryStorage();

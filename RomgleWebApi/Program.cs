@@ -16,6 +16,7 @@ using Hangfire;
 using Hangfire.Mongo;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
+using RotmgleWebApi.AuthenticationImplementation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,12 +29,17 @@ builder.Services.AddHangfire(configuration => configuration
 
 builder.Services.AddHangfireServer();
 
-const string authenticationScheme = "Bearer";
-builder.Services.AddAuthentication(authenticationScheme)
-    .AddScheme<TokenAuthenticationOptions, TokenAuthenticationHandler>(authenticationScheme, options =>
+builder.Services.AddAuthentication(TokenAuthenticationDefaults.Scheme)
+    .AddToken<IdentityProvider, UserService, SessionService>(options =>
     {
-        options.RefreshTokenRequestPath = "Authentication/RefreshAccessToken";
+        builder.Configuration.Bind("TokenAuthentication", options);
     });
+builder.Services.AddAuthenticationValidators<IdentityProvider>()
+    .AddValidator<RealmeyeAuthenticationValidator>();
+builder.Services.AddDeviceIdProviders("default")
+    .AddUserAgentDeviceIdProvider();
+builder.Services.Configure<TokenAuthenticationStorageOptions>(
+    builder.Configuration.GetSection("TokenAuthenticationStorage"));
 
 builder.Services.AddAuthorization();
 
@@ -42,26 +48,17 @@ builder.Services.AddCors();
 builder.Services.AddControllers(options =>
 {
     options.ValueProviderFactories.Add(new UserValueProviderFactory());
-    options.ValueProviderFactories.Add(new DeviceIdValueProviderFactory());
 }).AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     options.JsonSerializerOptions.Converters.Add(new JsonStringTimeSpanConverter());
 });
 
-builder.Services.AddDeviceIdProviders("default")
-    .Add<UserAgentDeviceIdProvider>();
-
 builder.Services.AddEndpointsApiExplorer();
 
-builder.Services.Configure<RotmgleDatabaseSettings>(
+builder.Services.Configure<RotmgleDatabaseOptions>(
     builder.Configuration.GetSection("RotmgleDatabase"));
-builder.Services.Configure<TokenAuthorizationSettings>(
-    builder.Configuration.GetSection("TokenAuthorization"));
 
-builder.Services.AddAuthenticationService()
-    .AddValidator<GoogleAuthenticationValidator>();
-builder.Services.AddSingleton<IAccessTokenService, JWTService>();
 builder.Services.AddSingleton<IItemService, ItemService>();
 builder.Services.AddSingleton<IDailyService, DailyService>();
 builder.Services.AddSingleton<IPlayerService, PlayerService>();
@@ -129,6 +126,7 @@ StaticRegistrationHelper.ProdOnce("Startup", () =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+
 if (app.Environment.IsDevelopment())
 {
     app.UseCors(builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());

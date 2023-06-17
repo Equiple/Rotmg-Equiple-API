@@ -10,12 +10,12 @@ namespace RotmgleWebApi.Dailies
         private readonly IItemService _itemService;
 
         public DailyService(
-            IOptions<RotmgleDatabaseSettings> rotmgleDatabaseSettings,
+            IOptions<RotmgleDatabaseOptions> rotmgleDatabaseSettings,
             IItemService itemService)
         {
             _dailyCollection = MongoUtils.GetCollection<Daily>(
                 rotmgleDatabaseSettings.Value,
-                x => x.DailyCollectionName);
+                rotmgleDatabaseSettings.Value.DailyCollectionName);
             _itemService = itemService;
         }
 

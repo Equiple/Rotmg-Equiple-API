@@ -1,9 +1,11 @@
 ﻿namespace RotmgleWebApi.Authentication
 {
-    public interface IAuthenticationValidator
+    public interface IAuthenticationValidator<TIdentityProvider>
+        where TIdentityProvider : struct, Enum
     {
-        IdentityProvider IdentityProvider { get; }
+        TIdentityProvider IdentityProvider { get; }
 
-        Task<Result<AuthenticationValidatorResult>> ValidateAsync(AuthenticationPermit permit);
+        Task<Result<AuthenticationValidatorResult<TIdentityProvider>>> ValidateAsync(
+            AuthenticationPermit<TIdentityProvider> permit);
     }
 }

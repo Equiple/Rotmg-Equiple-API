@@ -1,5 +1,6 @@
-﻿using MongoDB.Bson;
-using RotmgleWebApi.Authentication;
+﻿using RotmgleWebApi.Authentication;
+using MongoDB.Bson;
+using RotmgleWebApi.AuthenticationImplementation;
 using RotmgleWebApi.Games;
 using System.Text.Json.Serialization;
 
@@ -18,8 +19,6 @@ namespace RotmgleWebApi.Players
         public DateAndTime LastSeen { get; set; }
 
         public List<Identity> Identities { get; set; }
-
-        public List<Device> Devices { get; set; }
 
         public GameStatistic NormalStats { get; set; }
 

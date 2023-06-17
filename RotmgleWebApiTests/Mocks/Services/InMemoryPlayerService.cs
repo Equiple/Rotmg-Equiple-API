@@ -1,11 +1,10 @@
-﻿using RotmgleWebApi;
-using RotmgleWebApi.Authentication;
+﻿using RotmgleWebApi.AuthenticationImplementation;
 using RotmgleWebApi.Games;
 using RotmgleWebApi.Players;
 
-namespace RotmgleWebApiTests.Mocks.Services
+namespace RotmgleWebApiTests.Mocks
 {
-    internal class InMemoryPlayerService : IPlayerServiceMock, IPlayerService
+    internal class InMemoryPlayerService : IPlayerService, IPlayerServiceMock
     {
         private readonly List<Player> _players = new();
 
@@ -28,27 +27,22 @@ namespace RotmgleWebApiTests.Mocks.Services
             return Task.FromResult(player);
         }
 
-        public Task<Player?> GetByIdentityAsync(Identity identity)
+        public Task<Player?> GetOrDefaultAsync(string id)
         {
-            Player? player = _players
-                .FirstOrDefault(player => player.Identities
-                    .Any(playerIdentity => playerIdentity.Provider == identity.Provider
-                        && playerIdentity.Id == identity.Id));
+            Player? player = _players.FirstOrDefault(p => p.Id == id);
             return Task.FromResult(player);
         }
 
-        public async Task<Player> CreateNewAsync(Identity identity, string deviceId, string? name = null)
+        public Task<Player?> GetByIdentityAsync(Identity identity)
         {
-            Player? existingPlayer = await GetByIdentityAsync(identity);
-            if (existingPlayer != null)
-            {
-                throw new Exception($"Player with given identity {identity.Provider}:{identity.Id} already exists");
-            }
+            Player? player = _players.FirstOrDefault(p => p.Identities
+                .Any(i => i.Provider == identity.Provider
+                    && i.Id == identity.Id));
+            return Task.FromResult(player);
+        }
 
-            Device device = new()
-            {
-                Id = deviceId,
-            };
+        public Task<Player> CreateNewAsync(string? name, Identity? identity)
+        {
             Player player = new()
             {
                 Id = Guid.NewGuid().ToString(),
@@ -56,15 +50,18 @@ namespace RotmgleWebApiTests.Mocks.Services
                 Role = "user",
                 RegistrationDate = DateTime.UtcNow,
                 LastSeen = DateTime.UtcNow,
-                Identities = new List<Identity> { identity },
-                Devices = new List<Device> { device },
+                Identities = new List<Identity>(),
                 NormalStats = new GameStatistic(),
                 DailyStats = new GameStatistic(),
                 EndedGames = new List<Game>()
             };
+            if (identity != null)
+            {
+                player.Identities.Add(identity);
+            }
             _players.Add(player);
 
-            return player;
+            return Task.FromResult(player);
         }
 
         public Task UpdateAsync(Player updatedPlayer)
@@ -114,17 +111,17 @@ namespace RotmgleWebApiTests.Mocks.Services
             throw new NotImplementedException();
         }
 
+        public Task UpdatePlayerScoreAsync(Player player, GameResult result)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task InvalidateExpiredDailyGamesAsync()
         {
             throw new NotImplementedException();
         }
 
         public Task RemoveInactiveGuestAccountsAsync()
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task UpdatePlayerScoreAsync(Player player, GameResult result)
         {
             throw new NotImplementedException();
         }

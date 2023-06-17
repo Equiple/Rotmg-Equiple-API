@@ -2,12 +2,11 @@
 using Moq;
 using RotmgleWebApi;
 using RotmgleWebApi.Authentication;
+using RotmgleWebApi.AuthenticationImplementation;
 using RotmgleWebApi.Items;
-using RotmgleWebApiTests.Utils;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
 
 namespace RotmgleWebApiTests.IntegrationTests
@@ -72,7 +71,7 @@ namespace RotmgleWebApiTests.IntegrationTests
             HttpClient client = GetClient();
 
             //Act
-            (HttpResponseMessage response, AuthenticationResponse? model) = await AuthenticateGuest(client);
+            (HttpResponseMessage response, TokenAuthenticationResponse? model) = await AuthenticateGuest(client);
 
             //Assert
             AssertAuthenticatedResponse(response, model);
@@ -82,17 +81,17 @@ namespace RotmgleWebApiTests.IntegrationTests
         public async Task ValidProviderAuthenticateRequest_ReturnsAuthenticatedResponse()
         {
             //Arrange
-            (IAuthenticationValidator validator, AuthenticationPermit permit) =
+            (IAuthenticationValidator<IdentityProvider> validator, TokenAuthenticationRequest request) =
                 ArrangeAuthenticationValidator(isValid: true);
             ArrangeServices(services =>
             {
-                services.AddAuthenticationService()
+                services.AddAuthenticationValidators<IdentityProvider>()
                     .AddValidator(validator);
             });
             HttpClient client = GetClient();
 
             //Act
-            (HttpResponseMessage response, AuthenticationResponse? model) = await Authenticate(client, permit);
+            (HttpResponseMessage response, TokenAuthenticationResponse? model) = await Authenticate(client, request);
 
             //Assert
             AssertAuthenticatedResponse(response, model);
@@ -102,56 +101,56 @@ namespace RotmgleWebApiTests.IntegrationTests
         public async Task InvalidProviderAuthenticateRequest_ReturnsNotAuthenticatedResponse()
         {
             //Arrange
-            (IAuthenticationValidator authenValidator, AuthenticationPermit permit) =
+            (IAuthenticationValidator<IdentityProvider> validator, TokenAuthenticationRequest request) =
                 ArrangeAuthenticationValidator(isValid: false);
             ArrangeServices(services =>
             {
-                services.AddAuthenticationService()
-                    .AddValidator(authenValidator);
+                services.AddAuthenticationValidators<IdentityProvider>()
+                    .AddValidator(validator);
             });
             HttpClient client = GetClient();
 
             //Act
-            (HttpResponseMessage response, AuthenticationResponse? model) = await Authenticate(client, permit);
+            (HttpResponseMessage response, TokenAuthenticationResponse? model) = await Authenticate(client, request);
 
             //Assert
             AssertNotAuthenticatedResponse(response, model);
         }
 
-        [Test]
-        public async Task SelfProviderAuthenticateRequest_ReturnsNotAuthenticatedResponse()
-        {
-            //Arrange
-            AuthenticationPermit permit = new()
-            {
-                Provider = IdentityProvider.Self,
-                IdToken = "WhateverToken",
-            };
-            HttpClient client = GetClient();
+        //[Test]
+        //public async Task SelfProviderAuthenticateRequest_ReturnsNotAuthenticatedResponse()
+        //{
+        //    //Arrange
+        //    AuthenticationPermit permit = new()
+        //    {
+        //        Provider = IdentityProvider.Self,
+        //        IdToken = "WhateverToken",
+        //    };
+        //    HttpClient client = GetClient();
 
-            //Act
-            (HttpResponseMessage response, AuthenticationResponse? model) = await Authenticate(client, permit);
+        //    //Act
+        //    (HttpResponseMessage response, TokenAuthenticationResponse? model) = await Authenticate(client, permit);
 
-            //Assert
-            AssertNotAuthenticatedResponse(response, model);
-        }
+        //    //Assert
+        //    AssertNotAuthenticatedResponse(response, model);
+        //}
 
         [Test]
         public async Task AuthorizedRequestToSecuredEndpoint_Returns200()
         {
             //Arrange
-            (IAuthenticationValidator authenValidator, AuthenticationPermit permit) =
+            (IAuthenticationValidator<IdentityProvider> validator, TokenAuthenticationRequest request) =
                 ArrangeAuthenticationValidator(isValid: true);
             ArrangeServices(services =>
             {
-                services.AddAuthenticationService()
-                    .AddValidator(authenValidator);
+                services.AddAuthenticationValidators<IdentityProvider>()
+                    .AddValidator(validator);
             });
             HttpClient client = GetClient();
 
             //Act
-            (HttpResponseMessage authenResponse, AuthenticationResponse? authenModel) =
-                await Authenticate(client, permit);
+            (HttpResponseMessage authenResponse, TokenAuthenticationResponse? authenModel) =
+                await Authenticate(client, request);
 
             HttpRequestMessage securedEndpointRequest = new()
             {
@@ -175,33 +174,38 @@ namespace RotmgleWebApiTests.IntegrationTests
         }
 
         [Test]
-        public async Task LoggedOutRefreshTokenRequest_Returns401()
+        public async Task LoggedOutRequestToSecuredEndpoint_Returns401()
         {
             //Arrange
-            (IAuthenticationValidator authenValidator, AuthenticationPermit permit) =
+            (IAuthenticationValidator<IdentityProvider> validator, TokenAuthenticationRequest request) =
                 ArrangeAuthenticationValidator(isValid: true);
             ArrangeServices(services =>
             {
-                services.AddAuthenticationService()
-                    .AddValidator(authenValidator);
+                services.AddAuthenticationValidators<IdentityProvider>()
+                    .AddValidator(validator);
             });
             HttpClient client = GetClient();
 
             //Act
-            (HttpResponseMessage authenResponse, AuthenticationResponse? authenModel) =
-                await Authenticate(client, permit);
+            (HttpResponseMessage authenResponse, TokenAuthenticationResponse? authenModel) =
+                await Authenticate(client, request);
+            AuthenticationHeaderValue authorizationHeader = new("Bearer", authenModel?.AccessToken);
 
             HttpRequestMessage logoutRequest = new()
             {
                 Method = HttpMethod.Post,
                 RequestUri = new Uri("Authentication/Logout", UriKind.Relative),
             };
-            logoutRequest.Headers.Authorization = new AuthenticationHeaderValue(
-                "Bearer", authenModel?.AccessToken);
+            logoutRequest.Headers.Authorization = authorizationHeader;
             HttpResponseMessage logoutResponse = await client.SendAsync(logoutRequest);
 
-            (HttpResponseMessage refreshResponse, AuthenticationResponse? refreshModel) =
-                await RefreshToken(client, authenModel?.AccessToken, authenModel?.RefreshToken);
+            HttpRequestMessage securedEndpointRequest = new()
+            {
+                Method = HttpMethod.Get,
+                RequestUri = new Uri("GetTries", UriKind.Relative)
+            };
+            securedEndpointRequest.Headers.Authorization = authorizationHeader;
+            HttpResponseMessage securedEndpointResponse = await client.SendAsync(securedEndpointRequest);
 
             //Assert
             Assert.Multiple(() =>
@@ -211,7 +215,10 @@ namespace RotmgleWebApiTests.IntegrationTests
                     logoutResponse.StatusCode,
                     Is.EqualTo(HttpStatusCode.OK),
                     $"{AssertMessages.StatusCode} (logout)");
-                AssertNotAuthenticatedResponse(refreshResponse, refreshModel, suffix: "refresh");
+                Assert.That(
+                    securedEndpointResponse.StatusCode,
+                    Is.EqualTo(HttpStatusCode.Unauthorized),
+                    $"{AssertMessages.StatusCode} (secured endpoint)");
             });
         }
 
@@ -220,14 +227,14 @@ namespace RotmgleWebApiTests.IntegrationTests
         {
             //Arrange
             string googleIdentityId = "TestGoogleId";
-            (IAuthenticationValidator googleValidator, AuthenticationPermit googlePermit) =
+            (IAuthenticationValidator<IdentityProvider> googleValidator, TokenAuthenticationRequest googleRequest) =
                 ArrangeAuthenticationValidator(
                     isValid: true,
                     identityProvider: IdentityProvider.Google,
                     identityId: googleIdentityId);
 
             string discordIdentityId = "TestDiscordId";
-            (IAuthenticationValidator discordValidator, AuthenticationPermit discordPermit) =
+            (IAuthenticationValidator<IdentityProvider> discordValidator, TokenAuthenticationRequest discordRequest) =
                 ArrangeAuthenticationValidator(
                     isValid: true,
                     identityProvider: IdentityProvider.Discord,
@@ -235,17 +242,17 @@ namespace RotmgleWebApiTests.IntegrationTests
 
             ArrangeServices(services =>
             {
-                services.AddAuthenticationService()
+                services.AddAuthenticationValidators<IdentityProvider>()
                     .AddValidator(googleValidator)
                     .AddValidator(discordValidator);
             });
             HttpClient client = GetClient();
 
             //Act
-            (HttpResponseMessage authenResponse, AuthenticationResponse? authenModel) =
-                await Authenticate(client, googlePermit);
-            (HttpResponseMessage addIdentityResponse, AuthenticationResponse? addIdentityAuthenModel) =
-                await AddIdentity(client, authenModel?.AccessToken, discordPermit);
+            (HttpResponseMessage authenResponse, TokenAuthenticationResponse? authenModel) =
+                await Authenticate(client, googleRequest);
+            (HttpResponseMessage addIdentityResponse, TokenAuthenticationResponse? addIdentityAuthenModel) =
+                await AddIdentity(client, authenModel?.AccessToken, discordRequest);
 
             //Assert
             Assert.Multiple(() =>
@@ -272,42 +279,46 @@ namespace RotmgleWebApiTests.IntegrationTests
 
         #region helpers
 
-        private static async Task<(HttpResponseMessage, AuthenticationResponse?)> AuthenticateGuest(
+        private static async Task<(HttpResponseMessage, TokenAuthenticationResponse?)> AuthenticateGuest(
             HttpClient client)
         {
-            HttpResponseMessage response = await client.PostAsync("Authentication/AuthenticateGuest", null);
-            AuthenticationResponse? model = await GetAuthenticationResponseModel(response);
+            HttpResponseMessage response = await client.PostAsync(
+                "Authentication/AuthenticateGuest?resultType=Tokens", null);
+            TokenAuthenticationResponse? model = await GetAuthenticationResponseModel(response);
             return (response, model);
         }
 
-        private static async Task<(HttpResponseMessage, AuthenticationResponse?)> Authenticate(
+        private static async Task<(HttpResponseMessage, TokenAuthenticationResponse?)> Authenticate(
             HttpClient client,
-            AuthenticationPermit permit)
+            TokenAuthenticationRequest request)
         {
-            HttpResponseMessage response = await client.PostAsJsonAsync("Authentication/Authenticate", permit);
-            AuthenticationResponse? model = await GetAuthenticationResponseModel(response);
+            HttpResponseMessage response = await client.PostAsJsonAsync(
+                "Authentication/Authenticate",
+                request,
+                options: JsonUtils.DefaultOptions);
+            TokenAuthenticationResponse? model = await GetAuthenticationResponseModel(response);
             return (response, model);
         }
 
-        private static async Task<(HttpResponseMessage, AuthenticationResponse?)> AddIdentity(
+        private static async Task<(HttpResponseMessage, TokenAuthenticationResponse?)> AddIdentity(
             HttpClient client,
             string? accessToken,
-            AuthenticationPermit permit)
+            TokenAuthenticationRequest request)
         {
             HttpRequestMessage addIdentityRequest = new()
             {
                 Method = HttpMethod.Post,
                 RequestUri = new Uri("Authentication/Authenticate", UriKind.Relative),
-                Content = JsonContent.Create(permit),
+                Content = JsonContent.Create(request, options: JsonUtils.DefaultOptions),
             };
             addIdentityRequest.Headers.Authorization = new AuthenticationHeaderValue(
                 "Bearer", accessToken);
             HttpResponseMessage response = await client.SendAsync(addIdentityRequest);
-            AuthenticationResponse? model = await GetAuthenticationResponseModel(response);
+            TokenAuthenticationResponse? model = await GetAuthenticationResponseModel(response);
             return (response, model);
         }
 
-        private static async Task<(HttpResponseMessage, AuthenticationResponse?)> RefreshToken(
+        private static async Task<(HttpResponseMessage, TokenAuthenticationResponse?)> RefreshToken(
             HttpClient client,
             string? accessToken,
             string? refreshToken)
@@ -315,26 +326,24 @@ namespace RotmgleWebApiTests.IntegrationTests
             HttpRequestMessage refreshTokenRequest = new()
             {
                 Method = HttpMethod.Post,
-                RequestUri = new Uri("Authentication/RefreshAccessToken", UriKind.Relative),
-                Content = new StringContent(
-                    $"\"{refreshToken}\"",
-                    Encoding.UTF8,
-                    "application/json"),
+                RequestUri = new Uri($"Authentication/RefreshAccessToken?refreshToken={refreshToken}", UriKind.Relative),
             };
             refreshTokenRequest.Headers.Authorization = new AuthenticationHeaderValue(
                 "Bearer", accessToken);
             HttpResponseMessage response = await client.SendAsync(refreshTokenRequest);
-            AuthenticationResponse? model = await GetAuthenticationResponseModel(response);
+            TokenAuthenticationResponse? model = await GetAuthenticationResponseModel(response);
             return (response, model);
         }
 
-        private static async Task<AuthenticationResponse?> GetAuthenticationResponseModel(
+        private static async Task<TokenAuthenticationResponse?> GetAuthenticationResponseModel(
             HttpResponseMessage response)
         {
-            AuthenticationResponse? model;
+            TokenAuthenticationResponse? model;
             try
             {
-                model = await response.Content.ReadFromJsonAsync<AuthenticationResponse>();
+                string test = await response.Content.ReadAsStringAsync();
+                model = await response.Content.ReadFromJsonAsync<TokenAuthenticationResponse>(
+                    options: JsonUtils.DefaultOptions);
             }
             catch (JsonException)
             {
@@ -343,40 +352,40 @@ namespace RotmgleWebApiTests.IntegrationTests
             return model;
         }
 
-        private static (IAuthenticationValidator, AuthenticationPermit) ArrangeAuthenticationValidator(
+        private static (IAuthenticationValidator<IdentityProvider>, TokenAuthenticationRequest) ArrangeAuthenticationValidator(
             bool isValid,
             IdentityProvider identityProvider = IdentityProvider.Google,
             string identityId = "TestIdentityId")
         {
-            AuthenticationPermit permit = new()
+            TokenAuthenticationRequest request = new()
             {
+                ResultType = TokenAuthenticationResultType.Tokens,
                 Provider = identityProvider,
                 IdToken = "ValidIdToken",
             };
-            Identity identity = new()
-            {
-                Provider = identityProvider,
-                Id = identityId,
-            };
+            AuthenticationPermit<IdentityProvider> permit = request.ToPermit();
+            Identity<IdentityProvider> identity = new(
+                Provider: identityProvider,
+                Id: identityId);
             const string name = "TestName";
-            Result<AuthenticationValidatorResult> result = isValid
-                ? new AuthenticationValidatorResult(identity, name)
+            Result<AuthenticationValidatorResult<IdentityProvider>> result = isValid
+                ? new AuthenticationValidatorResult<IdentityProvider>(identity, name)
                 : new Exception("Invalid id token");
-            Mock<IAuthenticationValidator> validatorMock = new();
+            Mock<IAuthenticationValidator<IdentityProvider>> validatorMock = new();
             validatorMock
                 .SetupGet(validator => validator.IdentityProvider)
                 .Returns(identityProvider);
             validatorMock
-                .Setup(validator => validator.ValidateAsync(It.Is<AuthenticationPermit>(
+                .Setup(validator => validator.ValidateAsync(It.Is<AuthenticationPermit<IdentityProvider>>(
                     p => p.IdToken == permit.IdToken)))
                 .Returns(Task.FromResult(result));
 
-            return (validatorMock.Object, permit);
+            return (validatorMock.Object, request);
         }
 
         private static void AssertAuthenticatedResponse(
             HttpResponseMessage response,
-            AuthenticationResponse? model,
+            TokenAuthenticationResponse? model,
             string? suffix = null)
         {
             suffix = !string.IsNullOrWhiteSpace(suffix) ? $" ({suffix})" : "";
@@ -407,7 +416,7 @@ namespace RotmgleWebApiTests.IntegrationTests
 
         private static void AssertNotAuthenticatedResponse(
             HttpResponseMessage response,
-            AuthenticationResponse? model,
+            TokenAuthenticationResponse? model,
             string? suffix = null)
         {
             suffix = !string.IsNullOrWhiteSpace(suffix) ? $" ({suffix})" : "";

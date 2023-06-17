@@ -2,28 +2,28 @@
 
 namespace RotmgleWebApi.Authentication
 {
-    public class GoogleAuthenticationValidator : IAuthenticationValidator
-    {
-        public IdentityProvider IdentityProvider => IdentityProvider.Google;
+    //public class GoogleAuthenticationValidator : IAuthenticationValidator
+    //{
+    //    public IdentityProvider IdentityProvider => IdentityProvider.Google;
 
-        public async Task<Result<AuthenticationValidatorResult>> ValidateAsync(AuthenticationPermit permit)
-        {
-            GoogleJsonWebSignature.Payload payload;
-            try
-            {
-                payload = await GoogleJsonWebSignature.ValidateAsync(permit.IdToken);
-            }
-            catch (InvalidJwtException e)
-            {
-                return new Exception("Invalid google id token");
-            }
+    //    public async Task<Result<AuthenticationValidatorResult>> ValidateAsync(AuthenticationPermit permit)
+    //    {
+    //        GoogleJsonWebSignature.Payload payload;
+    //        try
+    //        {
+    //            payload = await GoogleJsonWebSignature.ValidateAsync(permit.IdToken);
+    //        }
+    //        catch (InvalidJwtException e)
+    //        {
+    //            return new Exception("Invalid google id token");
+    //        }
 
-            Identity identity = new()
-            {
-                Provider = IdentityProvider,
-                Id = payload.Email,
-            };
-            return new AuthenticationValidatorResult(identity, payload.Name);
-        }
-    }
+    //        Identity identity = new()
+    //        {
+    //            Provider = IdentityProvider,
+    //            Id = payload.Email,
+    //        };
+    //        return new AuthenticationValidatorResult(identity, payload.Name);
+    //    }
+    //}
 }

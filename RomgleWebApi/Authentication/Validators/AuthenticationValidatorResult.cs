@@ -1,4 +1,7 @@
 ﻿namespace RotmgleWebApi.Authentication
 {
-    public readonly record struct AuthenticationValidatorResult(Identity Identity, string? Name);
+    public readonly record struct AuthenticationValidatorResult<TIdentityProvider>(
+        Identity<TIdentityProvider> Identity,
+        string? Name)
+        where TIdentityProvider : struct, Enum;
 }

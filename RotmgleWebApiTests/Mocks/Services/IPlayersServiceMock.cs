@@ -1,6 +1,6 @@
 ﻿using RotmgleWebApi.Players;
 
-namespace RotmgleWebApiTests.Mocks.Services
+namespace RotmgleWebApiTests.Mocks
 {
     internal interface IPlayerServiceMock
     {

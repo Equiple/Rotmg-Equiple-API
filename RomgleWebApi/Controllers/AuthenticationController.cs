@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RotmgleWebApi.Authentication;
-using RotmgleWebApi.ModelBinding;
+using RotmgleWebApi.AuthenticationImplementation;
 
 namespace RotmgleWebApi.Controllers
 {
@@ -9,57 +9,51 @@ namespace RotmgleWebApi.Controllers
     [Route("[controller]")]
     public class AuthenticationController : ControllerBase
     {
-        private readonly IAuthenticationService _authenticationService;
+        private readonly ITokenAuthenticationService<IdentityProvider> _authenticationService;
 
-        public AuthenticationController(IAuthenticationService authenticationService)
+        public AuthenticationController(ITokenAuthenticationService<IdentityProvider> authenticationService)
         {
             _authenticationService = authenticationService;
         }
 
         [AllowAnonymous]
         [HttpPost("AuthenticateGuest")]
-        public async Task<AuthenticationResponse> AuthenticateGuest([DeviceId] string deviceId)
+        public async Task<TokenAuthenticationResponse> AuthenticateGuest(
+            [FromQuery] TokenAuthenticationResultType resultType)
         {
-            AuthenticationResult result = await _authenticationService.AuthenticateGuestAsync(deviceId);
+            TokenAuthenticationResult result = await _authenticationService.AuthenticateGuestAsync(
+                HttpContext,
+                resultType);
             return result.ToResponse();
         }
 
         [Authorize]
         [AllowAnonymous]
         [HttpPost("Authenticate")]
-        public async Task<AuthenticationResponse> Authenticate(
-            [UserId] string? playerId,
-            [DeviceId] string deviceId,
-            [FromBody] AuthenticationPermit permit)
+        public async Task<TokenAuthenticationResponse> Authenticate(
+            [FromBody] TokenAuthenticationRequest request)
         {
-            Result<AuthenticationResult> result = await _authenticationService.AuthenticateAsync(
-                playerId,
-                deviceId,
-                permit);
+            Result<TokenAuthenticationResult> result = await _authenticationService.AuthenticateAsync(
+                HttpContext,
+                request.ToPermit());
             return result.ToResponse();
         }
 
         [Authorize]
         [HttpPost("RefreshAccessToken")]
-        public async Task<AuthenticationResponse> RefreshAccessToken(
-            [UserId] string playerId,
-            [DeviceId] string deviceId,
-            [FromQuery] string refreshToken)
+        public async Task<TokenAuthenticationResponse> RefreshAccessToken([FromQuery] string refreshToken)
         {
-            Result<AuthenticationResult> result = await _authenticationService.RefreshAccessTokenAsync(
-                playerId,
-                deviceId,
+            Result<TokenAuthenticationResult> result = await _authenticationService.RefreshAccessTokenAsync(
+                HttpContext,
                 refreshToken);
             return result.ToResponse();
         }
 
         [Authorize]
         [HttpPost("Logout")]
-        public async Task<IActionResult> Logout(
-            [UserId] string playerId,
-            [DeviceId] string deviceId)
+        public async Task<IActionResult> Logout()
         {
-            await _authenticationService.LogoutAsync(playerId, deviceId);
+            await _authenticationService.LogoutAsync(HttpContext);
             return Ok();
         }
     }
