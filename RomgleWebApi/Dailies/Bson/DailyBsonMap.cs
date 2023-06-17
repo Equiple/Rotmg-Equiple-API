@@ -2,7 +2,7 @@
 
 namespace RotmgleWebApi.Dailies
 {
-    public static class BsonDailyMap
+    public static class DailyBsonMap
     {
         public static void Register()
         {
