@@ -35,11 +35,7 @@ namespace RotmgleWebApi.Items
 
         public List<string> Tags { get; set; }
 
-        public string DominantColor { get; set; }
-
         public List<string> ColorPalette { get; set; }
-
-        public string ColorClass { get; set; }
 
         [JsonIgnore]
         public BsonDocument ExtraElements { get; set; }

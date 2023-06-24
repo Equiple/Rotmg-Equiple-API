@@ -79,7 +79,6 @@ namespace RotmgleWebApi.Games
                 List<Hints> allHints = await GetHintsInternalAsync(playerId);
                 int hintsCount = CountCorrectHints(allHints);
                 result.Status = GuessStatus.NotGuessed;
-                result.Anagram = GetAnagramIfEligible(currentGame, hintsCount);
                 result.Description = GetDescriptionIfEligible(target, hintsCount);
             }
             return result;
@@ -136,7 +135,6 @@ namespace RotmgleWebApi.Games
                 Mode = player.CurrentGame.Mode,
                 Guesses = await GetGuessesInternalAsync(playerId),
                 AllHints = allHints,
-                Anagram = GetAnagramIfEligible(player.CurrentGame, hintsCount),
                 Description = GetDescriptionIfEligible(item, hintsCount),
                 ReskinsExcluded = player.CurrentGame.ReskingExcluded,
             };
@@ -390,25 +388,25 @@ namespace RotmgleWebApi.Games
                 return ColorTranslator.ToHtml(result);
             }
 
-            double GetMaxDistance(IEnumerable<Item> items)
-            {
-                List<double> distances = new();
-                foreach (Item item in items)
-                {
-                    foreach (Item anotherItem in items)
-                    {
-                        double distance = Color.FromName(item.DominantColor)
-                            .GetRGBDistanceFrom(Color.FromName(anotherItem.DominantColor));
-                        if (distance != 0)
-                        {
-                            distances.Add(distance);
-                        }
-                    }
-                }
-                distances.Sort();
-                double result = distances[distances.Count / 2];
-                return result;
-            }
+            //double GetMaxDistance(IEnumerable<Item> items)
+            //{
+            //    List<double> distances = new();
+            //    foreach (Item item in items)
+            //    {
+            //        foreach (Item anotherItem in items)
+            //        {
+            //            double distance = Color.FromName(item.DominantColor)
+            //                .GetRGBDistanceFrom(Color.FromName(anotherItem.DominantColor));
+            //            if (distance != 0)
+            //            {
+            //                distances.Add(distance);
+            //            }
+            //        }
+            //    }
+            //    distances.Sort();
+            //    double result = distances[distances.Count / 2];
+            //    return result;
+            //}
         }
 
         private static string? GetAnagramIfEligible(Game game, int hintsCount)

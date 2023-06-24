@@ -79,12 +79,11 @@ namespace RotmgleWebApi.Players
                     throw new Exception($"Player with given identity {identity.Provider}:{identity.Id} already exists");
                 }
             }
-
             name ??= StringUtils.GetRandomDefaultName();
             Player player = new()
             {
                 Name = name,
-                Role = "user",
+                Role = "guest",
                 RegistrationDate = DateTime.UtcNow,
                 LastSeen = DateTime.UtcNow,
                 Identities = new List<Identity>(),

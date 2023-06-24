@@ -35,6 +35,10 @@ namespace RotmgleWebApi.AuthenticationImplementation
         {
             Player player = await _playerService.GetAsync(user.Id);
             player.Name = user.Name;
+            if(!user.IsGuest)
+            {
+                player.Role = "user";
+            }
             player.Identities = user.Identities
                 .Select(identity => identity.ToIdentityModel())
                 .ToList();
