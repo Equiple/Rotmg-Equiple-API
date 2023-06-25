@@ -9,7 +9,7 @@
 
         Task<User<TIdentityProvider>> CreateUserAsync(string? name, Identity<TIdentityProvider>? identity);
 
-        Task UpdateUserAsync(User<TIdentityProvider> user);
+        Task AddUserIdentityAsync(string userId, Identity<TIdentityProvider> identity, string? name);
 
         Task<IReadOnlyDictionary<string, string>> CreateSessionPayloadAsync(string userId);
     }

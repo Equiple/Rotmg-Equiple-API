@@ -99,17 +99,10 @@ namespace RotmgleWebApi.Authentication
 
             if (loggedUser != null)
             {
-                string name = loggedUser.Name;
-                if (loggedUser.IsGuest && validationRes.Name != null)
-                {
-                    name = validationRes.Name;
-                }
-                loggedUser = loggedUser with
-                {
-                    Name = name,
-                    Identities = loggedUser.Identities.Append(validationRes.Identity).ToList(),
-                };
-                await _userService.UpdateUserAsync(loggedUser);
+                await _userService.AddUserIdentityAsync(
+                    loggedUser.Id,
+                    validationRes.Identity,
+                    validationRes.Name);
                 (_, result) = await CreateSession(permit.ResultType, loggedUser.Id, context);
                 return result;
             }

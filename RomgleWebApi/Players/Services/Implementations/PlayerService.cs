@@ -83,7 +83,6 @@ namespace RotmgleWebApi.Players
             Player player = new()
             {
                 Name = name,
-                Role = "guest",
                 RegistrationDate = DateTime.UtcNow,
                 LastSeen = DateTime.UtcNow,
                 Identities = new List<Identity>(),
@@ -91,8 +90,13 @@ namespace RotmgleWebApi.Players
                 DailyStats = new GameStatistic(),
                 EndedGames = new List<Game>()
             };
-            if (identity != null)
+            if (identity == null)
             {
+                player.Role = "guest";
+            }
+            else
+            {
+                player.Role = "user";
                 player.Identities.Add(identity);
             }
             await _playerCollection.InsertOneAsync(player);

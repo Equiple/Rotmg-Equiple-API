@@ -25,30 +25,37 @@ namespace RotmgleWebApi.AuthenticationImplementation
             return player?.ToUser();
         }
 
-        public async Task<User<IdentityProvider>> CreateUserAsync(string? name, Identity<IdentityProvider>? identity)
+        public async Task<User<IdentityProvider>> CreateUserAsync(
+            string? name,
+            Identity<IdentityProvider>? identity)
         {
             Player player = await _playerService.CreateNewAsync(name, identity?.ToIdentityModel());
             return player.ToUser();
         }
 
-        public async Task UpdateUserAsync(User<IdentityProvider> user)
+        public async Task AddUserIdentityAsync(
+            string userId,
+            Identity<IdentityProvider> identity,
+            string? name)
         {
-            Player player = await _playerService.GetAsync(user.Id);
-            player.Name = user.Name;
-            if(!user.IsGuest)
+            Player player = await _playerService.GetAsync(userId);
+            player.Identities.Add(identity.ToIdentityModel());
+            if (name != null && player.Role == "guest")
             {
-                player.Role = "user";
+                player.Name = name;
             }
-            player.Identities = user.Identities
-                .Select(identity => identity.ToIdentityModel())
-                .ToList();
+            player.Role = "user";
             await _playerService.UpdateAsync(player);
         }
 
-        public Task<IReadOnlyDictionary<string, string>> CreateSessionPayloadAsync(string userId)
+        public async Task<IReadOnlyDictionary<string, string>> CreateSessionPayloadAsync(string userId)
         {
-            return Task.FromResult<IReadOnlyDictionary<string, string>>(
-                new Dictionary<string, string>());
+            Player player = await _playerService.GetAsync(userId);
+            Dictionary<string, string> payload = new()
+            {
+                { "role", player.Role },
+            };
+            return payload;
         }
     }
 }
