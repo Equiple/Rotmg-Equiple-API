@@ -284,9 +284,9 @@ namespace RotmgleWebApi.Authentication
             string deviceId = _deviceIdProviderCollection.GetFirstDefinedOrDefaultDeviceId(context);
             await _sessionService.RemoveUserSessionsAsync(userId, deviceId);
             string accessToken = Convert.ToBase64String(
-                RandomNumberGenerator.GetBytes(_options.AccessTokenByteLength));
+                RandomNumberGenerator.GetBytes(_options.AccessTokenLengthBytes));
             string refreshToken = Convert.ToBase64String(
-                RandomNumberGenerator.GetBytes(_options.RefreshTokenByteLength));
+                RandomNumberGenerator.GetBytes(_options.RefreshTokenLengthBytes));
             IReadOnlyDictionary<string, string> payload = await _userService.CreateSessionPayloadAsync(userId);
             Session session = new(
                 AccessToken: accessToken,
