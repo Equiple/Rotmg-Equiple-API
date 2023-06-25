@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using System.Collections.Concurrent;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
@@ -14,6 +15,10 @@ namespace RotmgleWebApi.Authentication
         private readonly IEnumerable<IAuthenticationValidator<TIdentityProvider>> _validators;
         private readonly IDeviceIdProviderCollection _deviceIdProviderCollection;
         private readonly TokenAuthenticationOptions _options;
+
+        private readonly ConcurrentDictionary<
+            string,
+            Task<(Session session, TokenAuthenticationResult result)>> _cookieSessionRefreshes = new();
 
         public TokenAuthenticationService(
             IUserService<TIdentityProvider> userService,
@@ -119,7 +124,9 @@ namespace RotmgleWebApi.Authentication
                 return new AccessTokenValidationException(null, tokenNotFound: true);
             }
 
-            Session? session = await _sessionService.GetSessionAsync(accessToken);
+            Session? session = fromCookie
+                ? await GetCookieSession(accessToken)
+                : await _sessionService.GetSessionAsync(accessToken);
 
             if (session == null)
             {
@@ -144,10 +151,7 @@ namespace RotmgleWebApi.Authentication
             {
                 if (fromCookie)
                 {
-                    (session, _) = await CreateSession(
-                        TokenAuthenticationResultType.Cookie,
-                        session.UserId,
-                        context);
+                    session = await RefreshCookieSession(accessToken, session.UserId, context);
                 }
                 else
                 {
@@ -217,6 +221,43 @@ namespace RotmgleWebApi.Authentication
             string deviceId = _deviceIdProviderCollection.GetFirstDefinedOrDefaultDeviceId(context);
             await _sessionService.RemoveUserSessionsAsync(userId, deviceId);
             DeleteCookie(context);
+        }
+
+        private async Task<Session?> GetCookieSession(string accessToken)
+        {
+            Session? session;
+            if (_cookieSessionRefreshes.TryGetValue(accessToken, out var refresh))
+            {
+                (session, _) = await refresh;
+            }
+            else
+            {
+                session = await _sessionService.GetSessionAsync(accessToken);
+            }
+            return session;
+        }
+
+        private async Task<Session> RefreshCookieSession(
+            string accessToken,
+            string userId,
+            HttpContext context)
+        {
+            Session session;
+            if (_cookieSessionRefreshes.TryGetValue(accessToken, out var refresh))
+            {
+                (session, _) = await refresh;
+            }
+            else
+            {
+                refresh = CreateSession(
+                    TokenAuthenticationResultType.Cookie,
+                    userId,
+                    context);
+                _cookieSessionRefreshes.TryAdd(accessToken, refresh);
+                (session, _) = await refresh;
+                _cookieSessionRefreshes.TryRemove(accessToken, out _);
+            }
+            return session;
         }
 
         private async Task<(Session session, TokenAuthenticationResult result)> CreateSession(
