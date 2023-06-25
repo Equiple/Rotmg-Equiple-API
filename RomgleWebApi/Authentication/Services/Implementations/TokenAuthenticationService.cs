@@ -1,6 +1,6 @@
-﻿using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 using MongoDB.Driver;
-using System.Collections.Concurrent;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
@@ -10,28 +10,35 @@ namespace RotmgleWebApi.Authentication
     public class TokenAuthenticationService<TIdentityProvider> : ITokenAuthenticationService<TIdentityProvider>
         where TIdentityProvider : struct, Enum
     {
+        private static readonly Guid CookieSessionRefreshesId = Guid.NewGuid();
+
         private readonly IUserService<TIdentityProvider> _userService;
         private readonly ISessionService _sessionService;
+
         private readonly IEnumerable<IAuthenticationValidator<TIdentityProvider>> _validators;
+
         private readonly IDeviceIdProviderCollection _deviceIdProviderCollection;
+
         private readonly TokenAuthenticationOptions _options;
 
-        private readonly ConcurrentDictionary<
-            string,
-            Task<(Session session, TokenAuthenticationResult result)>> _cookieSessionRefreshes = new();
+        private readonly IMemoryCache _memoryCache;
+
+        private readonly object _cookieSessionLock = new();
 
         public TokenAuthenticationService(
             IUserService<TIdentityProvider> userService,
             ISessionService sessionService,
             IEnumerable<IAuthenticationValidator<TIdentityProvider>> validators,
             IDeviceIdProviderCollection deviceIdProviderCollection,
-            IOptions<TokenAuthenticationOptions> options)
+            IOptions<TokenAuthenticationOptions> options,
+            IMemoryCache memoryCache)
         {
             _userService = userService;
             _sessionService = sessionService;
             _validators = validators;
             _deviceIdProviderCollection = deviceIdProviderCollection;
             _options = options.Value;
+            _memoryCache = memoryCache;
         }
 
         public async Task<TokenAuthenticationResult> AuthenticateGuestAsync(
@@ -225,8 +232,16 @@ namespace RotmgleWebApi.Authentication
 
         private async Task<Session?> GetCookieSession(string accessToken)
         {
+            Task<NewSession>? refresh;
+            lock (_cookieSessionLock)
+            {
+                _memoryCache.TryGetValue(
+                    CookieSessionRefreshId(accessToken),
+                    out refresh);
+            }
+
             Session? session;
-            if (_cookieSessionRefreshes.TryGetValue(accessToken, out var refresh))
+            if (refresh != null)
             {
                 (session, _) = await refresh;
             }
@@ -242,25 +257,33 @@ namespace RotmgleWebApi.Authentication
             string userId,
             HttpContext context)
         {
-            Session session;
-            if (_cookieSessionRefreshes.TryGetValue(accessToken, out var refresh))
+            Task<NewSession> refresh;
+            lock (_cookieSessionLock)
             {
-                (session, _) = await refresh;
+                string refreshId = CookieSessionRefreshId(accessToken);
+                if (!_memoryCache.TryGetValue(refreshId, out refresh))
+                {
+                    refresh = CreateSession(
+                        TokenAuthenticationResultType.Cookie,
+                        userId,
+                        context);
+                    _memoryCache.Set(
+                        refreshId,
+                        refresh,
+                        DateTimeOffset.UtcNow.AddMinutes(5));
+                }
             }
-            else
-            {
-                refresh = CreateSession(
-                    TokenAuthenticationResultType.Cookie,
-                    userId,
-                    context);
-                _cookieSessionRefreshes.TryAdd(accessToken, refresh);
-                (session, _) = await refresh;
-                _cookieSessionRefreshes.TryRemove(accessToken, out _);
-            }
+
+            (Session session, _) = await refresh;
             return session;
         }
 
-        private async Task<(Session session, TokenAuthenticationResult result)> CreateSession(
+        private static string CookieSessionRefreshId(string accessToken)
+        {
+            return $"{CookieSessionRefreshesId}_{accessToken}";
+        }
+
+        private async Task<NewSession> CreateSession(
             TokenAuthenticationResultType type,
             string userId,
             HttpContext context)
@@ -302,12 +325,13 @@ namespace RotmgleWebApi.Authentication
                     throw new NotSupportedException();
             }
 
-            return (session, result);
+            return new NewSession(session, result);
         }
 
         private static string? GetUserId(HttpContext context)
         {
-            Claim? userIdClaim = context.User.Claims.FirstOrDefault(x => x.Type == CustomClaimNames.UserId);
+            Claim? userIdClaim = context.User.Claims
+                .FirstOrDefault(x => x.Type == CustomClaimNames.UserId);
             return userIdClaim?.Value;
         }
 
@@ -342,17 +366,24 @@ namespace RotmgleWebApi.Authentication
 
         private void SetCookie(HttpContext context, string accessToken)
         {
-            context.Response.Cookies.Append(CustomCookieNames.AccessToken, accessToken, new CookieOptions
-            {
-                HttpOnly = true,
-                IsEssential = true,
-                Expires = DateTimeOffset.UtcNow.AddDays(_options.RefreshTokenLifetimeDays),
-            });
+            context.Response.Cookies.Append(
+                CustomCookieNames.AccessToken,
+                accessToken,
+                new CookieOptions
+                {
+                    HttpOnly = true,
+                    IsEssential = true,
+                    Expires = DateTimeOffset.UtcNow.AddDays(_options.RefreshTokenLifetimeDays),
+                });
         }
 
         private static void DeleteCookie(HttpContext context)
         {
             context.Response.Cookies.Delete(CustomCookieNames.AccessToken);
         }
+
+        private readonly record struct NewSession(
+            Session Session,
+            TokenAuthenticationResult Result);
     }
 }

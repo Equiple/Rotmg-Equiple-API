@@ -34,6 +34,7 @@ builder.Services.AddAuthentication(TokenAuthenticationDefaults.Scheme)
     {
         builder.Configuration.Bind("TokenAuthentication", options);
     });
+builder.Services.AddMemoryCache();
 builder.Services.AddAuthenticationValidators<IdentityProvider>()
     .AddValidator<RealmeyeAuthenticationValidator>();
 builder.Services.AddDeviceIdProviders("default")
