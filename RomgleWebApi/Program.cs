@@ -41,6 +41,8 @@ builder.Services.AddDeviceIdProviders("default")
     .AddUserAgentDeviceIdProvider();
 builder.Services.Configure<TokenAuthenticationStorageOptions>(
     builder.Configuration.GetSection("TokenAuthenticationStorage"));
+builder.Services.Configure<RealmeyeAuthenticationOptions>(
+    builder.Configuration.GetSection("RealmeyeAuthentication"));
 
 builder.Services.AddAuthorization();
 
