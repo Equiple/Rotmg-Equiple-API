@@ -14,5 +14,5 @@ WORKDIR /app
 COPY --from=publish /app/publish .
 COPY RomgleWebApi/Assets Assets
 ENV ASPNETCORE_ENVIRONMENT=Production
-ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_URLS=http://+:80
 ENTRYPOINT ["dotnet", "RotmgleWebApi.dll"]

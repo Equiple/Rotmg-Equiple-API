@@ -20,8 +20,6 @@ using RotmgleWebApi.AuthenticationImplementation;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
 builder.Services.AddHangfire(configuration => configuration
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
     .UseSimpleAssemblyNameTypeSerializer()
@@ -69,7 +67,6 @@ builder.Services.AddSingleton<IGameService, GameService>();
 builder.Services.AddSingleton<IJobService, JobService>();
 builder.Services.AddSingleton<IComplaintService, ComplaintService>();
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -128,8 +125,6 @@ StaticRegistrationHelper.ProdOnce("Startup", () =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-
 if (app.Environment.IsDevelopment())
 {
     app.UseCors(builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
@@ -139,8 +134,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
-//app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
